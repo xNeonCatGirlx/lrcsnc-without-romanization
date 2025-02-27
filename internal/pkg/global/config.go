@@ -1,5 +1,11 @@
 package global
 
-import "lrcsnc/internal/pkg/structs"
+import (
+	"lrcsnc/internal/pkg/structs"
+	"sync"
+)
 
-var CurrentConfig structs.Config
+var CurrentConfig struct {
+	Mutex  sync.Mutex
+	Config structs.Config
+}

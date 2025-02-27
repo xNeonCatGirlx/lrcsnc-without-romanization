@@ -1,5 +1,17 @@
 package global
 
-import "lrcsnc/internal/pkg/structs"
+import (
+	"lrcsnc/internal/pkg/structs"
+	"sync"
+)
 
-var CurrentSong structs.Song = structs.Song{LyricsData: structs.LyricsData{LyricsType: 5}}
+var CurrentSong = struct {
+	Mutex sync.Mutex
+	Song  structs.Song
+}{
+	Song: structs.Song{
+		LyricsData: structs.LyricsData{
+			LyricsType: structs.LyricsStateUnknown,
+		},
+	},
+}
