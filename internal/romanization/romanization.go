@@ -6,24 +6,30 @@ import (
 
 	"lrcsnc/internal/pkg/global"
 
-	jp "github.com/mochi-co/kana-tools"
 	zh "github.com/mozillazg/go-pinyin"
+	jp "github.com/sarumaj/go-kakasi"
 	kr "github.com/srevinsaju/korean-romanizer-go"
 )
 
+// Supported languages are listed here
 type Language uint
 
 var (
-	Default  Language = 0
-	Japanese Language = 1
-	Korean   Language = 2
-	Chinese  Language = 3
+	LanguageDefault  Language = 0
+	LanguageJapanese Language = 1
+	LanguageKorean   Language = 2
+	LanguageChinese  Language = 3
 )
 
+// Unicode range tables accordingly are listed here
 var jpUnicodeRangeTable = []*unicode.RangeTable{
 	unicode.Hiragana,
 	unicode.Katakana,
 	unicode.Diacritic,
+}
+
+var krUnicodeRangeTable = []*unicode.RangeTable{
+	unicode.Hangul,
 }
 
 var zhUnicodeRangeTable = []*unicode.RangeTable{
@@ -31,72 +37,93 @@ var zhUnicodeRangeTable = []*unicode.RangeTable{
 	unicode.Han,
 }
 
-var krUnicodeRangeTable = []*unicode.RangeTable{
-	unicode.Hangul,
+// Returns romanized lyrics (or the same lyrics if the language is not supported)
+func RomanizeLyrics(strs []string) []string {
+	global.CurrentConfig.Mutex.Lock()
+	defer global.CurrentConfig.Mutex.Unlock()
+
+	if !global.CurrentConfig.Config.Lyrics.Romanization.IsEnabled() {
+		return strs
+	}
+
+	lang := GetLang(strs)
+	if lang == 0 {
+		return strs
+	}
+
+	out := make([]string, 0, len(strs))
+	for _, str := range strs {
+		var rstr string = ""
+		if len(str) != 0 {
+			rstr = Romanize(str, lang)
+		}
+		out = append(out, rstr)
+	}
+	return out
 }
 
+// Returns the first found language supported by romanization module, or falls back to LanguageDefault
 func GetLang(lyrics []string) Language {
-	if global.CurrentConfig.Lyrics.Romanization.Japanese {
+	global.CurrentConfig.Mutex.Lock()
+	defer global.CurrentConfig.Mutex.Unlock()
+
+	if global.CurrentConfig.Config.Lyrics.Romanization.Japanese {
 		for _, l := range lyrics {
 			if isChar(l, jpUnicodeRangeTable) {
-				return 1
+				return LanguageJapanese
 			}
 		}
 	}
-	if global.CurrentConfig.Lyrics.Romanization.Korean {
+	if global.CurrentConfig.Config.Lyrics.Romanization.Korean {
 		for _, l := range lyrics {
 			if isChar(l, krUnicodeRangeTable) {
-				return 2
+				return LanguageKorean
 			}
 		}
 	}
-	if global.CurrentConfig.Lyrics.Romanization.Chinese {
+	if global.CurrentConfig.Config.Lyrics.Romanization.Chinese {
 		for _, l := range lyrics {
 			if isChar(l, zhUnicodeRangeTable) {
-				return 3
+				return LanguageChinese
 			}
 		}
 	}
-	return 0
+	return LanguageDefault
 }
 
-func Romanize(strs []string, lang Language) []string {
-	outs := make([]string, 0, len(strs))
-	for _, str := range strs {
-		if len(str) == 0 {
-			outs = append(outs, "")
-			continue
+// Returns a romanized string based on the provided language
+func Romanize(str string, lang Language) (out string) {
+	switch lang {
+	case LanguageJapanese:
+		kakasiConverter, err := jp.NewKakasi()
+		if err != nil {
+			// TODO: logger
+			panic(err)
 		}
 
-		switch lang {
-		case 1:
-			out := jp.ToRomaji(str, true)
-			// Kanji and zh/kr characters are coded using unicode.Ideographic/unicode.Hangul using 3 bytes.
-			// So if a character did not get romanized, this should block the uppercasing (and crashing in the process)
-			if !isChar(out[:3], zhUnicodeRangeTable) {
-				out = strings.ToUpper(out[:1]) + out[1:]
-			}
-			outs = append(outs, out)
-		case 2:
-			r := kr.NewRomanizer(str)
-			out := r.Romanize()
-			if !isChar(out[:3], krUnicodeRangeTable) {
-				out = strings.ToUpper(out[:1]) + out[1:]
-			}
-			outs = append(outs, out)
-		case 3:
-			out := zhCharToPinyin(str)
-			if !isChar(out[:3], zhUnicodeRangeTable) {
-				out = strings.ToUpper(out[:1]) + out[1:]
-			}
-			outs = append(outs, out)
-		default:
-			outs = append(outs, str)
+		converted, err := kakasiConverter.Convert(str)
+		if err != nil {
+			// TODO: logger
+			panic(err)
 		}
 
+		out = converted.Romanize()
+		if unicode.IsLower(rune(out[0])) {
+			out = strings.ToUpper(out[:1]) + out[1:]
+		}
+	case LanguageKorean:
+		r := kr.NewRomanizer(str)
+		out = r.Romanize()
+		if unicode.IsLower(rune(out[0])) {
+			out = strings.ToUpper(out[:1]) + out[1:]
+		}
+	case LanguageChinese:
+		out = zhCharToPinyin(str)
+		if unicode.IsLower(rune(out[0])) {
+			out = strings.ToUpper(out[:1]) + out[1:]
+		}
 	}
-
-	return outs
+	return out
 }
 
 func isChar(s string, rangeTable []*unicode.RangeTable) bool {
