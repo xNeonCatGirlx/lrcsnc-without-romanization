@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strings"
 	"time"
 
-	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/config"
 	"lrcsnc/internal/pkg/structs"
 	"lrcsnc/internal/pkg/util"
 )
@@ -22,9 +21,13 @@ var (
 	CacheStateDisabled    CacheState = 2
 )
 
-// Returns the specified song's lyrics data from cache. The returned boolean is true if the cached data exists, is not expired and the function didn't end up with error.
+// Returns the specified song's lyrics data from cache.
+// The returned boolean is true if the cached data exists, is not expired and the function didn't end up with error.
 func GetCachedLyrics(song structs.Song) (structs.LyricsData, CacheState) {
-	if !global.CurrentConfig.Cache.Enabled {
+	config.CurrentConfig.Mutex.Lock()
+	defer config.CurrentConfig.Mutex.Unlock()
+
+	if !config.CurrentConfig.Config.Cache.Enabled {
 		return structs.LyricsData{}, CacheStateDisabled
 	}
 	cacheDirectory := GetCacheDir()
@@ -39,9 +42,9 @@ func GetCachedLyrics(song structs.Song) (structs.LyricsData, CacheState) {
 			return structs.LyricsData{}, CacheStateNonExistant
 		}
 
-		if global.CurrentConfig.Cache.CacheLifeSpan != 0 {
+		if config.CurrentConfig.Config.Cache.CacheLifeSpan != 0 {
 			cacheStats, _ := os.Lstat(fullPath)
-			isExpired := time.Since(cacheStats.ModTime()).Hours() <= float64(global.CurrentConfig.Cache.CacheLifeSpan)*24
+			isExpired := time.Since(cacheStats.ModTime()).Hours() <= float64(config.CurrentConfig.Config.Cache.CacheLifeSpan)*24
 			if isExpired {
 				return cachedData, CacheStateExpired
 			} else {
@@ -57,6 +60,9 @@ func GetCachedLyrics(song structs.Song) (structs.LyricsData, CacheState) {
 
 // Stores the specified song's data to cache
 func StoreCachedLyrics(song structs.Song) error {
+	config.CurrentConfig.Mutex.Lock()
+	defer config.CurrentConfig.Mutex.Unlock()
+
 	cacheDirectory := GetCacheDir()
 	if _, err := os.ReadDir(cacheDirectory); err != nil {
 		os.Mkdir(cacheDirectory, 0777)
@@ -79,6 +85,9 @@ func StoreCachedLyrics(song structs.Song) error {
 
 // Delete the specified song's cached data
 func RemoveCachedLyrics(song structs.Song) error {
+	config.CurrentConfig.Mutex.Lock()
+	defer config.CurrentConfig.Mutex.Unlock()
+
 	cacheDirectory := GetCacheDir()
 	if _, err := os.ReadDir(cacheDirectory); err != nil {
 		os.Mkdir(cacheDirectory, 0777)
@@ -95,13 +104,7 @@ func RemoveCachedLyrics(song structs.Song) error {
 }
 
 func GetCacheDir() string {
-	cacheDirectory := global.CurrentConfig.Cache.CacheDir
-	if strings.Contains(cacheDirectory, "$XDG_CACHE_DIR") && os.Getenv("$XDG_CACHE_DIR") == "" {
-		cacheDirectory = strings.ReplaceAll(cacheDirectory, "$XDG_CACHE_DIR", "$HOME/.cache")
-	}
-
-	cacheDirectory = os.ExpandEnv(cacheDirectory)
-	return cacheDirectory
+	return os.ExpandEnv(config.CurrentConfig.Config.Cache.CacheDir)
 }
 
 func getFilename(song string, artist string, album string, duration float64) string {
