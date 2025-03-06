@@ -24,8 +24,9 @@ type Config struct {
 // LEVEL 1
 
 type GlobalConfig struct {
-	Output         string `toml:"output"`
-	LyricsProvider string `toml:"lyrics-provider"`
+	Output         OutputType         `toml:"output"`
+	LyricsProvider LyricsProviderType `toml:"lyrics-provider"`
+	Log            LogConfig          `toml:"log"`
 }
 
 type PlayerConfig struct {
@@ -50,6 +51,12 @@ type OutputConfig struct {
 }
 
 // LEVEL 2
+
+type LogConfig struct {
+	Enabled     bool         `toml:"enabled"`
+	Destination string       `toml:"destination"`
+	Level       LogLevelType `toml:"level"`
+}
 
 type RomanizationConfig struct {
 	Japanese bool `toml:"japanese"`
