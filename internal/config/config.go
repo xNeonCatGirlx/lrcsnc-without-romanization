@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"lrcsnc/internal/log"
+	errs "lrcsnc/internal/pkg/errors"
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/structs"
 
@@ -18,7 +19,7 @@ func Read(path string) error {
 
 	configFile, err := os.ReadFile(os.ExpandEnv(path))
 	if err != nil {
-		return ErrFileUnreachable
+		return errs.ErrFileUnreachable
 	}
 
 	var config structs.Config
@@ -28,13 +29,13 @@ func Read(path string) error {
 		if errors.As(err, &decodeErr) {
 			lines := strings.Join(strings.Split(decodeErr.String(), "\n"), "\n\t")
 			log.Error("config/Read", "Error parsing the config file: \n\t"+lines)
-			return ErrFileInvalid
+			return errs.ErrConfigFileInvalid
 		}
 	}
 
-	errs := Validate(&config)
+	wrongs := Validate(&config)
 	fatal := false
-	for _, v := range errs {
+	for _, v := range wrongs {
 		if v.Fatal {
 			log.Error("config: "+v.Path, v.Message)
 			fatal = true
@@ -47,8 +48,8 @@ func Read(path string) error {
 		global.Config.C = config
 		global.Config.Path = path
 	} else {
-		log.Error("config/Read", "Fatal errors in the config were detected")
-		return errors.New("fatal validation errors")
+		log.Error("config/Read", "Fatal errors in the config were detected.")
+		return errs.ErrConfigFatalValidation
 	}
 
 	return nil
@@ -78,7 +79,8 @@ func ReadSystemWide() error {
 	sysWideConfigPath := "/etc/lrcsnc/config.toml"
 	_, err := os.Stat(sysWideConfigPath)
 	if err != nil {
-		log.Error("config/ReadSystemWide", "The system-wide config doesn't exist")
+		log.Error("config/ReadSystemWide", "The system-wide config doesn't exist.")
+		return errs.ErrFileUnreachable
 	}
 
 	return Read(sysWideConfigPath)
@@ -87,8 +89,8 @@ func ReadSystemWide() error {
 func Update() {
 	if err := Read(global.Config.Path); err != nil {
 		switch {
-		case errors.Is(err, ErrFileUnreachable):
-			log.Error("config/Update", "The config file is now unreachable. The configuration will remain the same")
+		case errors.Is(err, errs.ErrFileUnreachable):
+			log.Error("config/Update", "The config file is now unreachable. The configuration will remain the same until restart.")
 		default:
 			log.Error("config/Update", "Unknown error: "+err.Error())
 		}
