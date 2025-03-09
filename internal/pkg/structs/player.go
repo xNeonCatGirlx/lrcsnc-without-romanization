@@ -1,7 +1,10 @@
 package structs
 
 import (
+	"hash/fnv"
 	"lrcsnc/internal/pkg/types"
+	"strconv"
+	"strings"
 
 	"github.com/Endg4meZer0/go-mpris"
 )
@@ -15,7 +18,7 @@ type Player struct {
 
 type Song struct {
 	Title      string
-	Artist     string
+	Artists    []string
 	Album      string
 	Duration   float64
 	LyricsData LyricsData
@@ -29,4 +32,13 @@ type LyricsData struct {
 type Lyric struct {
 	Time float64
 	Text string
+}
+
+func (s *Song) ID() uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(s.Title))
+	h.Write([]byte(strings.Join(s.Artists, ", ")))
+	h.Write([]byte(s.Album))
+	h.Write([]byte(strconv.FormatFloat(s.Duration, 'f', -1, 64)))
+	return h.Sum64()
 }
