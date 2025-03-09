@@ -1,0 +1,115 @@
+# For more information, check wiki:
+# https://github.com/Endg4meZer0/lrcsnc/wiki/Configuration
+
+[global]
+output = "piped"
+lyrics-provider = "lrclib"
+
+[global.log]
+enabled = true
+destination = "$HOME/.local/state/lrcsnc/log"
+level = "info"
+
+[player]
+included-players = ["cmus", "spotify"]
+excluded-players = []
+
+[lyrics]
+timestamp-offset = 0.0
+
+[lyrics.romanization]
+japanese = true
+chinese = true
+korean = true
+
+[cache]
+enabled = true
+cache-dir = "$HOME/.cache/lrcsnc"
+cache-life-span = 840
+
+[output.piped]
+destination = "stdout"
+output-format = "{icon} {lyric} {multiplier}"
+multiplier-format = "(x{value})"
+
+[output.piped.lyric]
+icon = "♫"
+
+[output.piped.song-not-found]
+enabled = true
+icon = "⨯"
+text = "Song not found!"
+
+[output.piped.no-synced-lyrics]
+enabled = true
+icon = "🗏"
+text = "Lyrics are not synced!"
+
+[output.piped.getting-lyrics]
+enabled = true
+icon = "◌"
+text = "Loading..."
+
+[output.piped.error-message]
+enabled = true
+icon = "⚠"
+text = "An error occured! Check logs for info!"
+
+[output.piped.instrumental]
+interval = 0.66
+symbol = "♪"
+max-symbols = 3
+
+[output.tui]
+show-timestamps = true
+show-progress-bar = true
+
+[output.tui.theme]
+progress-bar-color = ""
+
+[output.tui.theme.lyric-before]
+color = "7"
+bold = true
+faint = false
+
+[output.tui.theme.lyric-current]
+color = "15"
+bold = true
+faint = false
+
+[output.tui.theme.lyric-after]
+color = "15"
+bold = true
+faint = true
+
+[output.tui.theme.lyric-cursor]
+color = "11"
+bold = true
+faint = false
+
+[output.tui.theme.border-cursor]
+color = "11"
+top = true
+right = false
+bottom = true
+left = false
+
+[output.tui.theme.timestamp-before]
+color = "7"
+bold = true
+faint = true
+
+[output.tui.theme.timestamp-current]
+color = "15"
+bold = true
+faint = true
+
+[output.tui.theme.timestamp-after]
+color = "7"
+bold = true
+faint = true
+
+[output.tui.theme.timestamp-cursor]
+color = "3"
+bold = true
+faint = false
