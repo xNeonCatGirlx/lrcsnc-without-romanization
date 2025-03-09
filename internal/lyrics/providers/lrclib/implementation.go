@@ -1,3 +1,3 @@
 package lrclib
 
-type LrcLibLyricsProvider struct{}
+type Provider struct{}

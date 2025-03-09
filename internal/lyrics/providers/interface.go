@@ -1,16 +1,17 @@
 package providers
 
 import (
-	dto "lrcsnc/internal/lyrics/dto"
 	lrclib "lrcsnc/internal/lyrics/providers/lrclib"
+
 	"lrcsnc/internal/pkg/structs"
+	"lrcsnc/internal/pkg/types"
 )
 
-type LyricsDataProvider interface {
-	// Gets the lyrics data for a song in the form of LyricsDTO for later handling
-	GetLyricsDTOList(structs.Song) ([]dto.LyricsDTO, error)
+type Provider interface {
+	// GetLyrics returns the lyrics of a song in form of LyricsData
+	GetLyrics(structs.Song) (structs.LyricsData, error)
 }
 
-var LyricsDataProviders map[string]LyricsDataProvider = map[string]LyricsDataProvider{
-	"lrclib": lrclib.LrcLibLyricsProvider{},
+var LyricsDataProviders = map[types.LyricsProviderType]Provider{
+	types.LyricsProviderLrclib: lrclib.Provider{},
 }
