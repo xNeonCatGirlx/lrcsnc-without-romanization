@@ -6,80 +6,162 @@ import (
 	"os"
 	"path"
 	"strconv"
+
+	"lrcsnc/internal/pkg/structs"
 )
 
-func ValidateConfig(c *Config) (errs []error, fatal bool) {
-	// Check if output value is not allowed
+type ValidationError struct {
+	Path    string
+	Message string
+	Fatal   bool
+}
+
+func (v ValidationError) Error() string {
+	return v.Message
+}
+
+type ValidationErrors []ValidationError
+
+func Validate(c *structs.Config) (errs ValidationErrors) {
+	errs = make(ValidationErrors, 0)
+
+	// Check whether output value is allowed
 	if c.Global.Output != "piped" && c.Global.Output != "tui" {
-		fatal = true
-		errs = append(errs, fmt.Errorf(`[config: global/output] ERROR: Output should either be "piped" or "tui"`))
+		errs = append(errs, ValidationError{
+			Path:    "global/output",
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'piped' and 'tui'", c.Global.Output),
+			Fatal:   true,
+		})
 	}
 
-	// Check if lrclib is not set as the lyrics provider
+	// Check whether lrclib is set as the lyrics provider
 	if c.Global.LyricsProvider != "lrclib" {
-		c.Global.LyricsProvider = "lrclib"
-		errs = append(errs, fmt.Errorf(`[config: global/lyrics-provider] WARNING: For now, 'lrclib' is the only lyrics provider, so lrcsnc will always use 'lrclib' until there are new lyrics providers introduced`))
+		errs = append(errs, ValidationError{
+			Path:    "global/lyrics-provider",
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'lrclib' (sure hope there will be more in the future)", c.Global.LyricsProvider),
+			Fatal:   true,
+		})
+	}
+
+	// Check whether log level is valid
+	if c.Global.Log.Level.ToInt() == -1 {
+		errs = append(errs, ValidationError{
+			Path:    "global/log/level",
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'debug', 'info', 'warn', 'error' and 'fatal'", c.Global.Log.Level),
+			Fatal:   true,
+		})
 	}
 
 	// Check if piped output's destination is writeable if it's not stdout
 	if c.Global.Output == "piped" && c.Output.Piped.Destination != "stdout" && !isPathWriteable(c.Output.Piped.Destination) {
-		fatal = true
-		errs = append(errs, fmt.Errorf("[config: output/piped/destination] ERROR: The destination is not writeable. An issue with the path itself, or maybe permissions?"))
+		errs = append(errs, ValidationError{
+			Path:    "output/piped/destination",
+			Message: fmt.Sprintf("'%s' is not a writeable path. Please make sure the path exists and is writeable", c.Output.Piped.Destination),
+			Fatal:   true,
+		})
 	}
 
 	// Check if the instrumental interval is set to <0.1s
 	if c.Global.Output == "piped" && c.Output.Piped.Instrumental.Interval < 0.1 {
+		errs = append(errs, ValidationError{
+			Path:    "output/piped/instrumental/interval",
+			Message: fmt.Sprintf("'%f' is not a valid value. Using the possible minimum instead (0.1s)", c.Output.Piped.Instrumental.Interval),
+			Fatal:   false,
+		})
 		c.Output.Piped.Instrumental.Interval = 0.1
-		errs = append(errs, fmt.Errorf("[config: output/piped/instrumental/interval] WARNING: Instrumental interval is set to a value less than 0.1. Using the possible minimum instead (0.1)"))
 	}
 
 	// Check if max symbols is less than 1
 	if c.Global.Output == "piped" && c.Output.Piped.Instrumental.MaxSymbols < 1 {
+		errs = append(errs, ValidationError{
+			Path:    "output/piped/instrumental/max-symbols",
+			Message: fmt.Sprintf("'%d' is not a valid value. Using the possible minimum instead (1)", c.Output.Piped.Instrumental.MaxSymbols),
+			Fatal:   false,
+		})
 		c.Output.Piped.Instrumental.MaxSymbols = 1
-		errs = append(errs, fmt.Errorf("[config: output/piped/instrumental/max-symbols] WARNING: Max symbols in instrumental section is set to a value less than 1. Using the possible minimum instead (1)"))
 	}
 
 	if c.Global.Output == "tui" {
 		// Check if the colors in the theme are not allowed
 		if !isValidColor(c.Output.TUI.Theme.ProgressBarColor) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/progress-bar-color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.ProgressBarColor),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.ProgressBarColor = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/progress-bar-color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.LyricBefore.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/lyric-before/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.LyricBefore.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.LyricBefore.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/lyric-before/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.LyricCurrent.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/lyric-current/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.LyricCurrent.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.LyricCurrent.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/lyric-current/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.LyricAfter.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/lyric-after/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.LyricAfter.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.LyricAfter.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/lyric-after/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.LyricCursor.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/lyric-cursor/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.LyricCursor.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.LyricCursor.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/lyric-cursor/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.BorderCursor.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/border-cursor/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.BorderCursor.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.BorderCursor.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/border-cursor/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.TimestampBefore.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/timestamp-before/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.TimestampBefore.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.TimestampBefore.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/timestamp-before/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.TimestampCurrent.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/timestamp-current/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.TimestampCurrent.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.TimestampCurrent.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/timestamp-current/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.TimestampAfter.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/timestamp-after/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.TimestampAfter.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.TimestampAfter.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/timestamp-after/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 		if !isValidColor(c.Output.TUI.Theme.TimestampCursor.Color) {
+			errs = append(errs, ValidationError{
+				Path:    "output/tui/theme/timestamp-cursor/color",
+				Message: fmt.Sprintf("'%s' is not a valid color. Using ANSI white instead (15)", c.Output.TUI.Theme.TimestampCursor.Color),
+				Fatal:   false,
+			})
 			c.Output.TUI.Theme.TimestampCursor.Color = "15"
-			errs = append(errs, fmt.Errorf("[config: output/tui/theme/timestamp-cursor/color] WARNING: Color is not valid. Falling back to ANSI white"))
 		}
 	}
 
@@ -88,7 +170,7 @@ func ValidateConfig(c *Config) (errs []error, fatal bool) {
 
 func isPathWriteable(p string) bool {
 	p = path.Clean(p)
-	f, err := os.OpenFile(p, 0777, os.ModeExclusive)
+	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return false
 	} else {
@@ -98,6 +180,7 @@ func isPathWriteable(p string) bool {
 }
 
 func isValidColor(c string) bool {
+
 	if _, err := strconv.ParseUint(c, 10, 8); err == nil {
 		return true
 	} else if len(c) == 7 && c[0] == '#' {

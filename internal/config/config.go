@@ -1,49 +1,62 @@
 package config
 
 import (
-	"fmt"
-	"log"
+	"errors"
 	"os"
+	"strings"
+
+	"lrcsnc/internal/log"
+	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/structs"
 
 	"github.com/pelletier/go-toml/v2"
 )
 
-// TODO: move to TOML for configuration
-
-func ReadConfig(path string) error {
-	CurrentConfig.Mutex.Lock()
-	defer CurrentConfig.Mutex.Unlock()
+func Read(path string) error {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
 
 	configFile, err := os.ReadFile(os.ExpandEnv(path))
 	if err != nil {
-		return err
+		return ErrFileUnreachable
 	}
 
-	var config Config
+	var config structs.Config
 
 	if err := toml.Unmarshal(configFile, &config); err != nil {
-		return err
+		var decodeErr *toml.DecodeError
+		if errors.As(err, &decodeErr) {
+			lines := strings.Join(strings.Split(decodeErr.String(), "\n"), "\n\t")
+			log.Error("config/Read", "Error parsing the config file: \n\t"+lines)
+			return ErrFileInvalid
+		}
 	}
 
-	errs, fatal := ValidateConfig(&config)
-
+	errs := Validate(&config)
+	fatal := false
 	for _, v := range errs {
-		log.Println(v)
+		if v.Fatal {
+			log.Error("config: "+v.Path, v.Message)
+			fatal = true
+		} else {
+			log.Warn("config: "+v.Path, v.Message)
+		}
 	}
 
 	if !fatal {
-		CurrentConfig.Config = config
-		CurrentConfig.path = path
+		global.Config.C = config
+		global.Config.Path = path
 	} else {
-		return fmt.Errorf("FATAL ERRORS IN THE CONFIG WERE DETECTED! Rolling back... ")
+		log.Error("config/Read", "Fatal errors in the config were detected")
+		return errors.New("fatal validation errors")
 	}
 
 	return nil
 }
 
-func ReadConfigFromUserPath() error {
-	CurrentConfig.Mutex.Lock()
-	defer CurrentConfig.Mutex.Unlock()
+func ReadUserWide() error {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
 
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
@@ -51,88 +64,33 @@ func ReadConfigFromUserPath() error {
 	}
 	userConfigDir += "/lrcsnc"
 
-	if _, err := os.ReadDir(userConfigDir); err != nil {
-		os.Mkdir(userConfigDir, 0777)
-		os.Chmod(userConfigDir, 0777)
+	if _, err := os.Stat(userConfigDir + "/config.toml"); err != nil {
+		return errors.New("user config file doesn't exist")
 	}
 
-	if _, err := os.Lstat(userConfigDir + "/config.toml"); err != nil {
-		return err
-	}
-
-	configFile, err := os.ReadFile(userConfigDir + "/config.toml")
-	if err != nil {
-		return err
-	}
-
-	var config Config
-
-	if err := toml.Unmarshal(configFile, &config); err != nil {
-		return err
-	}
-
-	errs, fatal := ValidateConfig(&config)
-
-	for _, v := range errs {
-		// TODO: logger
-		log.Println(v)
-	}
-
-	if !fatal {
-		CurrentConfig.Config = config
-		CurrentConfig.path = userConfigDir + "/config.toml"
-	} else {
-		return fmt.Errorf("FATAL ERRORS IN THE CONFIG WERE DETECTED! Rolling back... ")
-	}
-
-	return nil
+	return Read(userConfigDir + "/config.toml")
 }
 
-func ReadDefaultConfig() error {
-	CurrentConfig.Mutex.Lock()
-	defer CurrentConfig.Mutex.Unlock()
+func ReadSystemWide() error {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
 
-	var defaultConfigPath string = "/usr/share/lrcsnc/config.toml"
-	_, err := os.Stat("/usr/share/lrcsnc/config.toml")
+	sysWideConfigPath := "/etc/lrcsnc/config.toml"
+	_, err := os.Stat(sysWideConfigPath)
 	if err != nil {
-		defaultConfigPath = "/usr/local/share/lrcsnc/config.toml"
-		_, err = os.Stat("/usr/local/share/lrcsnc/config.toml")
-		if err != nil {
-			return fmt.Errorf("[config/ReadDefaultConfig] ERROR: Couldn't find default config. Was it deleted? Actually, was it there to begin with?")
+		log.Error("config/ReadSystemWide", "The system-wide config doesn't exist")
+	}
+
+	return Read(sysWideConfigPath)
+}
+
+func Update() {
+	if err := Read(global.Config.Path); err != nil {
+		switch {
+		case errors.Is(err, ErrFileUnreachable):
+			log.Error("config/Update", "The config file is now unreachable. The configuration will remain the same")
+		default:
+			log.Error("config/Update", "Unknown error: "+err.Error())
 		}
-	}
-
-	configFile, err := os.ReadFile(defaultConfigPath)
-	if err != nil {
-		return err
-	}
-
-	var config Config
-
-	if err := toml.Unmarshal(configFile, &config); err != nil {
-		return err
-	}
-
-	errs, fatal := ValidateConfig(&config)
-
-	for _, v := range errs {
-		// TODO: logger
-		log.Println(v)
-	}
-
-	if !fatal {
-		CurrentConfig.Config = config
-		CurrentConfig.path = defaultConfigPath
-	} else {
-		return fmt.Errorf("[config/ReadDefaultConfig] ERROR: The default config has errors in it. Was it modified?")
-	}
-
-	return nil
-}
-
-func UpdateConfig() {
-	if err := ReadConfig(CurrentConfig.path); err != nil {
-		// TODO: logger
-		log.Println(err)
 	}
 }
