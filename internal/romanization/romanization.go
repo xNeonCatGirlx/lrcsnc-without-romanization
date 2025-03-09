@@ -1,15 +1,17 @@
 package romanization
 
 import (
+	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/structs"
 	"strings"
 	"unicode"
-
-	"lrcsnc/internal/pkg/global"
 
 	zh "github.com/mozillazg/go-pinyin"
 	jp "github.com/sarumaj/go-kakasi"
 	kr "github.com/srevinsaju/korean-romanizer-go"
 )
+
+// TODO: there may be songs with mixed languages, so we may need to romanize each line separately
 
 // Supported languages are listed here
 type Language uint
@@ -38,52 +40,51 @@ var zhUnicodeRangeTable = []*unicode.RangeTable{
 }
 
 // Returns romanized lyrics (or the same lyrics if the language is not supported)
-func RomanizeLyrics(strs []string) []string {
-	global.CurrentConfig.Mutex.Lock()
-	defer global.CurrentConfig.Mutex.Unlock()
+func RomanizeLyrics(lyrics []structs.Lyric) {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
 
-	if !global.CurrentConfig.Config.Lyrics.Romanization.IsEnabled() {
-		return strs
+	if !global.Config.C.Lyrics.Romanization.IsEnabled() {
+		return
 	}
 
-	lang := GetLang(strs)
+	lang := getLang(lyrics)
 	if lang == 0 {
-		return strs
+		return
 	}
 
-	out := make([]string, 0, len(strs))
-	for _, str := range strs {
+	for i := range lyrics {
 		var rstr string = ""
-		if len(str) != 0 {
-			rstr = Romanize(str, lang)
+		if len(lyrics[i].Text) != 0 {
+			rstr = romanize(lyrics[i].Text, lang)
 		}
-		out = append(out, rstr)
+		lyrics[i].Text = rstr
 	}
-	return out
 }
 
-// Returns the first found language supported by romanization module, or falls back to LanguageDefault
-func GetLang(lyrics []string) Language {
-	global.CurrentConfig.Mutex.Lock()
-	defer global.CurrentConfig.Mutex.Unlock()
+// Returns the first found language supported by romanization module,
+// or falls back to LanguageDefault if no supported language is found
+func getLang(lyrics []structs.Lyric) Language {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
 
-	if global.CurrentConfig.Config.Lyrics.Romanization.Japanese {
-		for _, l := range lyrics {
-			if isChar(l, jpUnicodeRangeTable) {
+	if global.Config.C.Lyrics.Romanization.Japanese {
+		for i := range lyrics {
+			if isChar(lyrics[i].Text, jpUnicodeRangeTable) {
 				return LanguageJapanese
 			}
 		}
 	}
-	if global.CurrentConfig.Config.Lyrics.Romanization.Korean {
-		for _, l := range lyrics {
-			if isChar(l, krUnicodeRangeTable) {
+	if global.Config.C.Lyrics.Romanization.Korean {
+		for i := range lyrics {
+			if isChar(lyrics[i].Text, krUnicodeRangeTable) {
 				return LanguageKorean
 			}
 		}
 	}
-	if global.CurrentConfig.Config.Lyrics.Romanization.Chinese {
-		for _, l := range lyrics {
-			if isChar(l, zhUnicodeRangeTable) {
+	if global.Config.C.Lyrics.Romanization.Chinese {
+		for i := range lyrics {
+			if isChar(lyrics[i].Text, zhUnicodeRangeTable) {
 				return LanguageChinese
 			}
 		}
@@ -92,7 +93,7 @@ func GetLang(lyrics []string) Language {
 }
 
 // Returns a romanized string based on the provided language
-func Romanize(str string, lang Language) (out string) {
+func romanize(str string, lang Language) (out string) {
 	switch lang {
 	case LanguageJapanese:
 		kakasiConverter, err := jp.NewKakasi()
