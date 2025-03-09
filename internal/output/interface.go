@@ -3,17 +3,18 @@ package output
 import (
 	"lrcsnc/internal/output/piped"
 	"lrcsnc/internal/output/tui"
+	"lrcsnc/internal/pkg/types"
 )
 
-type OutputController interface {
-	OnSongInfoChange()
-	OnPlayerInfoChange()
-	OnOverwriteReceived(overwrite string)
+type Controller interface {
+	OnConfigChange()
+	OnPlayerChange()
+	OnOverwrite(overwrite string)
 
-	DisplayCurrentLyric(lyricIndex int)
+	DisplayLyric(lyricIndex int)
 }
 
-var OutputControllers = map[string]OutputController{
-	"piped": piped.PipedOutputController{},
-	"tui":   tui.TUIOutputController{},
+var Controllers = map[types.OutputType]Controller{
+	types.OutputPiped: piped.Controller{},
+	types.OutputTUI:   tui.Controller{},
 }

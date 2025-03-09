@@ -2,11 +2,15 @@ package piped
 
 import (
 	"log"
-	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/types"
 	"os"
 	"strings"
 	"time"
+
+	mprislib "github.com/Endg4meZer0/go-mpris"
 )
+
+// TODO: JSON output for Waybar and stuff
 
 var outputDestination *os.File = os.Stdout
 var outputDestChanged = false
@@ -15,65 +19,64 @@ var instrTimer = time.NewTimer(5 * time.Minute)
 var writeInstrumental bool = false
 
 func Init() {
-	i := 1
-	instrTimer.Reset(time.Duration(global.CurrentConfig.Output.Piped.Instrumental.Interval*1000) * time.Millisecond)
-	for {
-		<-instrTimer.C
-		note := global.CurrentConfig.Output.Piped.Instrumental.Symbol
-		j := int(global.CurrentConfig.Output.Piped.Instrumental.MaxCount + 1)
+	go func() {
+		i := 1
+		instrTimer.Reset(time.Duration(config.Instrumental.Interval*1000) * time.Millisecond)
+		for {
+			<-instrTimer.C
+			note := config.Instrumental.Symbol
+			j := int(config.Instrumental.MaxSymbols + 1)
 
-		// Only update instrumental stuff if the song is playing
-		if global.CurrentPlayer.IsPlaying && writeInstrumental {
-			stringToPrint := ""
-			switch global.CurrentSong.LyricsData.LyricsType {
-			case 1:
-				if global.CurrentConfig.Output.Piped.ShowNotSyncedLyricsWarning {
-					stringToPrint += "This song's lyrics are not synced on LrcLib! "
+			// Only update instrumental stuff if the song is playing
+			if player.PlaybackStatus == mprislib.PlaybackPlaying && writeInstrumental {
+				var stringToPrint string
+
+				switch player.Song.LyricsData.LyricsType {
+				case types.LyricsStatePlain:
+					stringToPrint = getOutString(config.NoSyncedLyrics)
+				case types.LyricsStateNotFound:
+					stringToPrint = getOutString(config.SongNotFound)
+				case types.LyricsStateInProgress:
+					stringToPrint = getOutString(config.GettingLyrics)
+				default:
+					stringToPrint = getOutString(config.ErrorMessage)
 				}
-			case 3:
-				if global.CurrentConfig.Output.Piped.ShowSongNotFoundWarning {
-					stringToPrint += "This song was not found on LrcLib! "
+
+				stringToPrint += " " + strings.Repeat(note, i%j)
+
+				outputDestination.WriteString(stringToPrint + "\n")
+
+				i++
+				if i >= j {
+					i = 1
 				}
-			case 5:
-				if global.CurrentConfig.Output.Piped.ShowGettingLyricsMessage {
-					stringToPrint += "Getting lyrics... "
-				}
-			case 6:
-				stringToPrint += "Failed to get lyrics! "
 			}
-
-			stringToPrint += strings.Repeat(note, i%j)
-
-			outputDestination.WriteString(stringToPrint + "\n")
-
-			i++
-			// Don't want to cause any overflow here
-			if i >= j {
-				i = 1
-			}
+			instrTimer.Reset(time.Duration(config.Instrumental.Interval*1000) * time.Millisecond)
 		}
-		instrTimer.Reset(time.Duration(global.CurrentConfig.Output.Piped.Instrumental.Interval*1000) * time.Millisecond)
-	}
+	}()
 }
 
-func PrintLyric(lyric string) {
+func Print(lyric string) {
 	if outputDestChanged {
 		outputDestination.Truncate(0)
 		outputDestination.Seek(0, 0)
 	}
-	if overwrite == "" {
-		if lyric == "" {
-			writeInstrumental = true
-			instrTimer.Reset(1)
-		} else {
-			writeInstrumental = false
-			instrTimer.Stop()
-			outputDestination.WriteString(lyric + "\n")
-		}
+
+	if overwrite != "" {
+		return
+	}
+
+	if lyric == "" {
+		writeInstrumental = true
+		instrTimer.Reset(1)
+	} else {
+		writeInstrumental = false
+		instrTimer.Stop()
+		outputDestination.WriteString(lyric + "\n")
 	}
 }
 
-func UpdateOutputDestination(path string) {
+func UpdateDestination(path string) {
 	newDest, err := os.Create(path)
 	if err != nil {
 		log.Println("The output file was set, but I can't create/open it! Permissions issue or wrong path?")
@@ -83,11 +86,11 @@ func UpdateOutputDestination(path string) {
 	}
 }
 
-func CloseOutput() {
+func Close() {
 	outputDestination.Close()
 }
 
-func PrintOverwrite(over string) {
+func Overwrite(over string) {
 	overwrite = over
 	if outputDestChanged {
 		outputDestination.Truncate(0)
@@ -98,4 +101,8 @@ func PrintOverwrite(over string) {
 		<-time.NewTimer(5 * time.Second).C
 		overwrite = ""
 	}()
+}
+
+func Write(s string) {
+	
 }
