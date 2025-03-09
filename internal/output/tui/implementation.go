@@ -1,16 +1,40 @@
 package tui
 
-type TUIOutputController struct{}
+import (
+	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/structs"
+)
 
-func (TUIOutputController) OnSongInfoChange() {
-	SongInfoChanged <- true
+var player structs.Player
+var config structs.TUIOutputConfig
+
+type Controller struct{}
+
+func (Controller) OnConfigChange() {
+	global.Config.M.Lock()
+	defer global.Config.M.Unlock()
+
+	config = global.Config.C.Output.TUI
 }
-func (TUIOutputController) OnPlayerInfoChange() {
+
+func (Controller) OnPlayerChange() {
+	global.Player.M.Lock()
+	defer global.Player.M.Unlock()
+
+	prevSongID := player.Song.ID()
+
+	player = global.Player.P
+
 	PlayerInfoChanged <- true
+	if prevSongID != global.Player.P.Song.ID() {
+		SongInfoChanged <- true
+	}
 }
-func (TUIOutputController) OnOverwriteReceived(overwrite string) {
+
+func (Controller) OnOverwrite(overwrite string) {
 	OverwriteReceived <- overwrite
 }
-func (TUIOutputController) DisplayCurrentLyric(lyricIndex int) {
+
+func (Controller) DisplayLyric(lyricIndex int) {
 	CurrentLyricChanged <- lyricIndex
 }

@@ -5,23 +5,28 @@ import (
 )
 
 type (
-	songInfoChanged     struct{}
-	playerInfoChanged   struct{}
+	configChanged       bool
+	songInfoChanged     bool
+	playerInfoChanged   bool
 	currentLyricChanged int
 	overwriteReceived   string
 )
 
+func watchConfigChanges() tea.Cmd {
+	return func() tea.Msg {
+		return <-ConfigChanged
+	}
+}
+
 func watchSongInfoChanges() tea.Cmd {
 	return func() tea.Msg {
-		<-SongInfoChanged
-		return songInfoChanged{}
+		return <-SongInfoChanged
 	}
 }
 
 func watchPlayerInfoChanges() tea.Cmd {
 	return func() tea.Msg {
-		<-PlayerInfoChanged
-		return playerInfoChanged{}
+		return <-PlayerInfoChanged
 	}
 }
 
