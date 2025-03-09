@@ -2,6 +2,8 @@ package util
 
 import "regexp"
 
+var badChars = regexp.MustCompile(`[:;!?,\.\[\]<>\/\\*|]+`)
+
 func RemoveBadCharacters(str string) string {
-	return regexp.MustCompile(`[:;!?,\.\[\]<>\/\\*|]+`).ReplaceAllString(str, "_")
+	return badChars.ReplaceAllString(str, "_")
 }

@@ -39,6 +39,6 @@ func (s *Song) ID() uint64 {
 	h.Write([]byte(s.Title))
 	h.Write([]byte(strings.Join(s.Artists, ", ")))
 	h.Write([]byte(s.Album))
-	h.Write([]byte(strconv.FormatFloat(s.Duration, 'f', -1, 64)))
+	h.Write([]byte(strconv.FormatFloat(s.Duration, 'f', 1, 64)))
 	return h.Sum64()
 }
