@@ -8,13 +8,10 @@ import (
 	"lrcsnc/internal/config"
 	"lrcsnc/internal/mpris"
 	"lrcsnc/internal/output/piped"
-	"lrcsnc/internal/output/tui"
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/setup"
 	"lrcsnc/internal/sync"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func Start() {
@@ -59,11 +56,5 @@ func Start() {
 		<-exitSigs
 		log.Info("cmd", "Exit signal received, bye!")
 		os.Exit(0)
-	case "tui":
-		p := tea.NewProgram(tui.InitialModel(), tea.WithAltScreen())
-		if _, err := p.Run(); err != nil {
-			log.Fatal("cmd", "Error running TUI: "+err.Error())
-			os.Exit(1)
-		}
 	}
 }

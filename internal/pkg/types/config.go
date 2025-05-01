@@ -26,12 +26,11 @@ const (
 
 // OutputType is a type of output to use.
 //
-// Possible values: "piped", "tui".
+// Possible values: "piped".
 type OutputType string
 
 const (
 	OutputPiped OutputType = "piped"
-	OutputTUI   OutputType = "tui"
 )
 
 // LogLevelType represents the log level to use in logger.

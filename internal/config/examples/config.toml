@@ -21,7 +21,7 @@ life-span = 168
 store-condition = 100
 
 [output]
-type = "tui"
+type = "piped"
 
 [output.piped]
 destination = "stdout"
@@ -61,57 +61,3 @@ text = "An error occured! Check logs for info!"
 interval = 0.66
 symbol = "♪"
 max-symbols = 3
-
-[output.tui]
-show-timestamps = true
-show-progress-bar = true
-
-[output.tui.theme]
-progress-bar-color = ""
-
-[output.tui.theme.lyric-before]
-color = "7"
-bold = true
-faint = false
-
-[output.tui.theme.lyric-current]
-color = "15"
-bold = true
-faint = false
-
-[output.tui.theme.lyric-after]
-color = "15"
-bold = true
-faint = true
-
-[output.tui.theme.lyric-cursor]
-color = "11"
-bold = true
-faint = false
-
-[output.tui.theme.border-cursor]
-color = "11"
-top = true
-right = false
-bottom = true
-left = false
-
-[output.tui.theme.timestamp-before]
-color = "7"
-bold = true
-faint = true
-
-[output.tui.theme.timestamp-current]
-color = "15"
-bold = true
-faint = true
-
-[output.tui.theme.timestamp-after]
-color = "7"
-bold = true
-faint = true
-
-[output.tui.theme.timestamp-cursor]
-color = "3"
-bold = true
-faint = false

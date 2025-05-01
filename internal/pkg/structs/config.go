@@ -42,7 +42,6 @@ type CacheConfig struct {
 type OutputConfig struct {
 	Type  types.OutputType  `toml:"type"`
 	Piped PipedOutputConfig `toml:"piped"`
-	TUI   TUIOutputConfig   `toml:"tui"`
 }
 
 // LEVEL 2
@@ -71,13 +70,6 @@ type PipedOutputConfig struct {
 	Instrumental   InstrumentalConfig  `toml:"instrumental"`
 }
 
-// TODO: Move ShowTimestamps and ShowProgressBar to a state file
-type TUIOutputConfig struct {
-	ShowTimestamps  bool           `toml:"show-timestamps"`
-	ShowProgressBar bool           `toml:"show-progress-bar"`
-	Theme           TUIThemeConfig `toml:"theme"`
-}
-
 // LEVEL 3
 
 type FormatOutputConfig struct {
@@ -98,33 +90,4 @@ type InstrumentalConfig struct {
 	Interval   float64 `toml:"interval"`
 	Symbol     string  `toml:"symbol"`
 	MaxSymbols uint    `toml:"max-symbols"`
-}
-
-type TUIThemeConfig struct {
-	LyricBefore      TUIThemeTextConfig   `toml:"lyric-before"`
-	LyricCurrent     TUIThemeTextConfig   `toml:"lyric-current"`
-	LyricAfter       TUIThemeTextConfig   `toml:"lyric-after"`
-	LyricCursor      TUIThemeTextConfig   `toml:"lyric-cursor"`
-	BorderCursor     TUIThemeBorderConfig `toml:"border-cursor"`
-	TimestampBefore  TUIThemeTextConfig   `toml:"timestamp-before"`
-	TimestampCurrent TUIThemeTextConfig   `toml:"timestamp-current"`
-	TimestampAfter   TUIThemeTextConfig   `toml:"timestamp-after"`
-	TimestampCursor  TUIThemeTextConfig   `toml:"timestamp-cursor"`
-	ProgressBarColor string               `toml:"progress-bar-color"`
-}
-
-// LEVEL 4
-
-type TUIThemeTextConfig struct {
-	Color string `toml:"color"`
-	Bold  bool   `toml:"bold"`
-	Faint bool   `toml:"faint"`
-}
-
-type TUIThemeBorderConfig struct {
-	Color  string `toml:"color"`
-	Top    bool   `toml:"top"`
-	Right  bool   `toml:"right"`
-	Bottom bool   `toml:"bottom"`
-	Left   bool   `toml:"left"`
 }
