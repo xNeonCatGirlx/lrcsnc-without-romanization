@@ -6,20 +6,22 @@ import (
 	"syscall"
 
 	"lrcsnc/internal/config"
-	"lrcsnc/internal/flags"
-	"lrcsnc/internal/log"
 	"lrcsnc/internal/mpris"
 	"lrcsnc/internal/output/piped"
 	"lrcsnc/internal/output/tui"
 	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/log"
+	"lrcsnc/internal/setup"
 	"lrcsnc/internal/sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func Start() {
-	// Handle the -- flags
-	flags.HandleFlags()
+	// Handle all the general setup...
+	setup.Setup()
+	// ...and check for dependencies
+	setup.CheckDependencies()
 
 	// Start the USR1 signal listener for config updates
 	// TODO: replace with live file watcher
@@ -33,18 +35,18 @@ func Start() {
 		}
 	}()
 
+	// Deploy the main watchers
+	sync.Start()
+
 	// Initialize the player listener session
 	err := mpris.Connect()
 	if err != nil {
-		log.Fatal("main", "Error when configuring MPRIS. Check logs for more info.")
+		log.Fatal("cmd", "Error when configuring MPRIS. Check logs for more info.")
 	}
 	defer mpris.Disconnect()
 
-	// Start the main loop
-	sync.Loop()
-
 	// Initialize the output
-	switch global.Config.C.Global.Output {
+	switch global.Config.C.Output.Type {
 	case "piped":
 		piped.Init()
 		defer piped.Close()
@@ -52,15 +54,15 @@ func Start() {
 		exitSigs := make(chan os.Signal, 1)
 		signal.Notify(exitSigs, syscall.SIGINT, syscall.SIGTERM)
 
-		log.Info("main", "Piped output initialized.")
+		log.Info("cmd", "Piped output initialized.")
 
 		<-exitSigs
-		log.Info("main", "Exit signal received, bye!")
+		log.Info("cmd", "Exit signal received, bye!")
 		os.Exit(0)
 	case "tui":
 		p := tea.NewProgram(tui.InitialModel(), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
-			log.Fatal("main", "Error running TUI: "+err.Error())
+			log.Fatal("cmd", "Error running TUI: "+err.Error())
 			os.Exit(1)
 		}
 	}
