@@ -5,15 +5,15 @@ import (
 	"strings"
 )
 
-func lyricIndexToString(l int) string {
-	if l < 0 || l >= len(player.Song.LyricsData.Lyrics) {
+func lyricIndexToString(l int, lyricsData []structs.Lyric) string {
+	if l < 0 || l >= len(lyricsData) {
 		return ""
 	} else {
-		return player.Song.LyricsData.Lyrics[l].Text
+		return lyricsData[l].Text
 	}
 }
 
-func getOutString(c structs.MessageOutputConfig) string {
+func getInstrumentalMessage(c structs.MessageOutputConfig, outputFormat string) string {
 	if !c.Enabled {
 		return ""
 	}
@@ -23,5 +23,14 @@ func getOutString(c structs.MessageOutputConfig) string {
 		"{lyric}", c.Text,
 		"{multiplier}", "",
 	)
-	return strings.TrimSpace(replacer.Replace(config.OutputFormat))
+	return strings.TrimSpace(replacer.Replace(outputFormat))
+}
+
+func getInstrumentalString(c structs.LyricOutputConfig, outputFormat string) string {
+	replacer := strings.NewReplacer(
+		"{icon}", c.Icon,
+		"{lyric}", "",
+		"{multiplier}", "",
+	)
+	return strings.TrimSpace(replacer.Replace(outputFormat))
 }

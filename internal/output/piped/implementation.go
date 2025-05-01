@@ -1,47 +1,27 @@
 package piped
 
-import (
-	"lrcsnc/internal/pkg/global"
-	"lrcsnc/internal/pkg/structs"
-	"strconv"
-	"strings"
-)
+import "lrcsnc/internal/pkg/global"
 
-var player structs.Player
-var config structs.PipedOutputConfig
+var currentDestination string = "stdout"
 
 type Controller struct{}
 
-func (Controller) OnConfigChange() {
+func (Controller) OnConfigUpdate() {
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
 
-	config = global.Config.C.Output.Piped
+	if global.Config.C.Output.Piped.Destination != currentDestination &&
+		changeOutput(global.Config.C.Output.Piped.Destination) == nil {
+		currentDestination = global.Config.C.Output.Piped.Destination
+	}
 }
 
-func (Controller) OnPlayerChange() {
-	global.Player.M.Lock()
-	defer global.Player.M.Unlock()
-
-	player = global.Player.P
-}
+func (Controller) OnPlayerUpdate() {}
 
 func (Controller) OnOverwrite(overwrite string) {
 	Overwrite(overwrite)
 }
 
 func (Controller) DisplayLyric(lyricIndex int) {
-	lyric := lyricIndexToString(lyricIndex)
-	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
-	multiplier := 0
-	for i := lyricIndex; i >= 0 && player.Song.LyricsData.Lyrics[i].Text != lyric; i-- {
-		multiplier++
-	}
-	replacer := strings.NewReplacer(
-		"{icon}", global.Config.C.Output.Piped.Lyric.Icon,
-		"{lyric}", lyric,
-		"{multiplier}", strings.ReplaceAll(global.Config.C.Output.Piped.MultiplierFormat, "{value}", strconv.Itoa(multiplier)),
-	)
-	Print(strings.TrimSpace(replacer.Replace(global.Config.C.Output.Piped.OutputFormat)))
+	currentLyricChangedChan <- lyricIndex
 }

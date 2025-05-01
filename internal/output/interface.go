@@ -7,8 +7,8 @@ import (
 )
 
 type Controller interface {
-	OnConfigChange()
-	OnPlayerChange()
+	OnConfigUpdate()
+	OnPlayerUpdate()
 	OnOverwrite(overwrite string)
 
 	DisplayLyric(lyricIndex int)
