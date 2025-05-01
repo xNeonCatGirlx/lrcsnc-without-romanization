@@ -10,6 +10,7 @@ import (
 )
 
 type Player struct {
+	Name           string
 	PlaybackStatus mpris.PlaybackStatus
 	Position       float64
 	Rate           float64
@@ -25,8 +26,8 @@ type Song struct {
 }
 
 type LyricsData struct {
-	Lyrics     []Lyric
-	LyricsType types.LyricsState
+	Lyrics      []Lyric
+	LyricsState types.LyricsState
 }
 
 type Lyric struct {

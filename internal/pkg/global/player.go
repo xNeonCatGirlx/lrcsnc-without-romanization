@@ -18,7 +18,7 @@ var Player = struct {
 		Rate:           1.0,
 		Song: structs.Song{
 			LyricsData: structs.LyricsData{
-				LyricsType: types.LyricsStateUnknown,
+				LyricsState: types.LyricsStateUnknown,
 			},
 		},
 	},

@@ -4,24 +4,32 @@ import (
 	"slices"
 	"strings"
 
-	"lrcsnc/internal/log"
 	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/types"
 
 	"github.com/Endg4meZer0/go-mpris"
 	"github.com/godbus/dbus/v5"
 )
 
-func UpdatePlayer() error {
+// ChangePlayer is used to:
+//
+// 1) Check if the current player is still alive (in that case does nothing)
+//
+// 2) Find a new player among MPRIS clients that fits the filters
+// (if it finds, changes the player and informs corresponding channels)
+func ChangePlayer() error {
+	log.Debug("mpris/ChangePlayer", "Started")
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
 
 	// Getting the players list
 	players, err := mpris.List(conn)
 	if err != nil {
-		log.Error("mpris/UpdatePlayer/List", err.Error())
+		log.Error("mpris/ChangePlayer", "Got an error while using mpris.List: "+err.Error())
 		return err
 	}
+	log.Debug("mpris/ChangePlayer", "Current players available in MPRIS: "+strings.Join(players, ", "))
 
 	// A little helper function to filter players
 	playerInFilter := func(player string) bool {
@@ -46,91 +54,131 @@ func UpdatePlayer() error {
 
 	// Check if the current player is still alive and kicking
 	if player != nil {
+		log.Debug("mpris/ChangePlayer", "There is a player handle stored already. Checking if it's alive yet...")
 		currentPlayer := player.GetName()
 		if slices.Contains(players, currentPlayer) && playerInFilter(currentPlayer) {
+			log.Debug("mpris/ChangePlayer", "It is alive. No extra action taken.")
 			return nil
 		} else {
+			log.Debug("mpris/ChangePlayer", "It is dead. Starting unregistering procedure.")
 			// Remove the signal handler from the current player before assigning to a new player
-			err = player.UnregisterSignalReceiver(PlayerSignalReceiver)
+			err = player.UnregisterSignalReceiver(playerSignalReceiver)
 			if err != nil {
 				log.Error(
-					"mpris/UpdatePlayer/UnregisterSignalReceiver",
-					"An error occurred. Reassigning channel. More: "+err.Error(),
+					"mpris/ChangePlayer",
+					"An error occurred while unregistering signal receive channel. Recreating and redeploying the watcher. More: "+err.Error(),
 				)
-				PlayerSignalReceiver = make(chan *dbus.Signal)
+				playerSignalReceiver = make(chan *dbus.Signal)
+				go playerSignalWatcher()
 			} else {
 				log.Debug(
-					"mpris/UpdatePlayer/UnregisterSignalReceiver",
-					"The current player is no longer alive; successfully unregistered signal receiver.",
+					"mpris/ChangePlayer",
+					"Successfully unregistered signal receiver.",
 				)
 			}
 		}
 	}
 
 	// Find a new player that passes the filters and supports MPRIS to the extent that we need
+	log.Debug("mpris/ChangePlayer", "Starting to pick a new player to watch.")
 	for _, p := range players {
 		if playerInFilter(p) {
-			log.Debug("mpris/UpdatePlayer", "Found new player: '"+p+"', trying to connect...")
+			log.Info("mpris/ChangePlayer", "Found a fitting player: '"+p+"', trying to connect...")
 			player = mpris.New(conn, p)
-
-			// Lock the player mutex while we're updating the data
-			global.Player.M.Lock()
 
 			pass := true
 
-			global.Player.P.PlaybackStatus, err = GetPlaybackStatus()
+			pname, err := player.GetIdentity()
 			if err != nil {
-				log.Error("mpris/UpdatePlayer/GetPlaybackStatus", err.Error())
+				log.Error("mpris/ChangePlayer", "Got an error when using player.GetIdentity: "+err.Error())
 				pass = false
 			}
-			global.Player.P.Position, err = GetPosition()
+			pps, err := GetPlaybackStatus()
 			if err != nil {
-				log.Error("mpris/UpdatePlayer/GetPosition", err.Error())
+				log.Error("mpris/ChangePlayer", "Got an error when using player.GetPlaybackStatus: "+err.Error())
 				pass = false
 			}
-			global.Player.P.Rate, err = GetRate()
+			ppos, err := GetPosition()
 			if err != nil {
-				log.Error("mpris/UpdatePlayer/GetRate", err.Error())
+				log.Error("mpris/ChangePlayer", "Got an error when using player.GetPosition: "+err.Error())
+				pass = false
+			}
+			prate, err := GetRate()
+			if err != nil {
+				log.Error("mpris/ChangePlayer", "Got an error when using player.GetRate: "+err.Error())
 				pass = false
 			}
 			md, err := GetMetadata()
 			if err != nil {
-				log.Error("mpris/UpdatePlayer/GetMetadata", err.Error())
+				log.Error("mpris/ChangePlayer", "Got an error when using player.GetMetadata: "+err.Error())
 				pass = false
 			}
 
-			err = ApplyMetadataOntoGlobal(md)
+			err = CheckMetadata(md)
 			if err != nil {
-				log.Error("mpris/UpdatePlayer/ApplyMetadataOntoGlobal", err.Error())
+				log.Error("mpris/ChangePlayer", "Got an error when using ApplyMetadataOntoGlobal: "+err.Error())
 				pass = false
 			}
-
-			global.Player.M.Unlock()
 
 			if !pass {
-				log.Debug("mpris/UpdatePlayer", "Failed to gather necessary data from player '"+p+"'. Skipping...")
+				log.Info("mpris/ChangePlayer", "Failed to gather necessary data from player '"+p+"'. Skipping...")
 				continue
 			}
 
+			// Lock the player mutex while we're updating the data
+			global.Player.M.Lock()
+
+			global.Player.P.Name = pname
+			global.Player.P.PlaybackStatus = pps
+			global.Player.P.Position = ppos
+			global.Player.P.Rate = prate
+			ApplyMetadataOntoGlobal(md)
+
+			global.Player.M.Unlock()
+
 			// Register signal receiver for the new player
-			err = player.RegisterSignalReceiver(PlayerSignalReceiver)
+			err = player.RegisterSignalReceiver(playerSignalReceiver)
 			if err != nil {
-				log.Fatal("mpris/UpdatePlayer/RegisterSignalReceiver", "Cannot watch for player signals. More: "+err.Error())
+				log.Fatal("mpris/ChangePlayer/RegisterSignalReceiver", "Cannot watch for player signals. More: "+err.Error())
 			}
 
-			log.Debug("mpris/UpdatePlayer", "Successfully connected to player '"+p+"' and gathered necessary data.")
-			log.Info("mpris/UpdatePlayer", "Switched to player '"+p+"'")
+			log.Debug("mpris/ChangePlayer", "Successfully connected to player '"+p+"' and gathered necessary data.")
+			log.Info("mpris/ChangePlayer", "Switched to player '"+p+"'")
 
 			return nil
 		}
 	}
 
 	// If no player is found, set the player to nil
-	log.Info("mpris/UpdatePlayer", "No active player found. Zzz")
+	log.Info("mpris/ChangePlayer", "No active player found. Zzz")
 	player = nil
 	return nil
 }
 
+func CheckMetadata(md mpris.Metadata) (err error) {
+	_, err = md.Title()
+	if err != nil {
+		return err
+	}
+	_, err = md.Artist()
+	if err != nil {
+		return err
+	}
+	_, err = md.Album()
+	if err != nil {
+		return err
+	}
+	_, err = md.Length()
+	if err != nil {
+		return err
+	}
+	return
+}
+
+// ApplyMetadataOnGlobal edits the global player variable (specifically the Song)
+// in accordance to provided metadata.
+//
+// It does NOT lock the mutex.
 func ApplyMetadataOntoGlobal(md mpris.Metadata) (err error) {
 	global.Player.P.Song.Title, err = md.Title()
 	if err != nil {
@@ -149,11 +197,12 @@ func ApplyMetadataOntoGlobal(md mpris.Metadata) (err error) {
 		return err
 	}
 	global.Player.P.Song.Duration = float64(dur) / 1000 / 1000
-	global.Player.P.Song.LyricsData.LyricsType = types.LyricsStateInProgress
+	global.Player.P.Song.LyricsData.LyricsState = types.LyricsStateInProgress
 
 	return nil
 }
 
+// GetPlaybackStatus returns current playback status
 func GetPlaybackStatus() (mpris.PlaybackStatus, error) {
 	if player == nil {
 		return mpris.PlaybackStopped, nil
@@ -162,6 +211,7 @@ func GetPlaybackStatus() (mpris.PlaybackStatus, error) {
 	return player.GetPlaybackStatus()
 }
 
+// GetPosition returns current position
 func GetPosition() (float64, error) {
 	if player == nil {
 		return 0, nil
@@ -175,6 +225,7 @@ func GetPosition() (float64, error) {
 	return float64(val) / 1000 / 1000, nil
 }
 
+// GetRate returns current rate
 func GetRate() (float64, error) {
 	if player == nil {
 		return 0, nil
@@ -183,6 +234,7 @@ func GetRate() (float64, error) {
 	return player.GetRate()
 }
 
+// GetMetadata returns current metadata
 func GetMetadata() (mpris.Metadata, error) {
 	if player == nil {
 		return nil, nil
@@ -191,6 +243,7 @@ func GetMetadata() (mpris.Metadata, error) {
 	return player.GetMetadata()
 }
 
+// SetPosition sets new position for the player
 func SetPosition(pos float64) error {
 	if player == nil {
 		return nil
