@@ -4,49 +4,53 @@ import (
 	"lrcsnc/internal/cache"
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/structs"
+	"lrcsnc/internal/pkg/types"
 	"testing"
 )
 
 func TestStoreGetCycle(t *testing.T) {
-	global.CurrentConfig.Cache.CacheDir = "$XDG_CACHE_DIR/lrcsnc"
+	global.Config.C.Cache.Dir = "$HOME/.cache/lrcsnc"
 	testSong := structs.Song{
 		Title:    "Is This A Test?",
-		Artist:   "Endg4me_",
+		Artists:  []string{"Endg4me_"},
 		Album:    "lrcsnc",
 		Duration: 12.12,
 		LyricsData: structs.LyricsData{
-			Lyrics: []string{
-				"Pam-pam-pampararam",
-				"Pam-pam-pam-param-pamparam",
+			Lyrics: []structs.Lyric{
+				{Time: 4.12, Text: "Pam-pam-pampararam"},
+				{Time: 7.54, Text: "Pam-pam-pam-param-pamparam"},
 			},
-			LyricTimestamps: []float64{
-				4.12,
-				7.54,
-			},
-			LyricsType: 0,
+			LyricsState: types.LyricsStateSynced,
 		},
 	}
-	err := cache.StoreCachedLyrics(testSong)
+	err := cache.Store(&testSong)
 	if err != nil {
-		t.Errorf("[tests/cache/TestStoreGetCycle] %v", err)
+		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Failed to store lyrics in cache: %v", err)
+	}
+	defer cache.Remove(&testSong)
+
+	global.Config.C.Cache.Enabled = false
+	answerDisabled, cacheStateDisabled := cache.Fetch(&testSong)
+
+	global.Config.C.Cache.Enabled = true
+	answerInfLifeSpan, cacheStateInfLifeSpan := cache.Fetch(&testSong)
+
+	if len(answerDisabled.Lyrics) != 0 || answerDisabled.LyricsState != 0 || cacheStateDisabled != cache.CacheStateDisabled {
+		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Disabling caching in config still allows fetching cached data")
 	}
 
-	global.CurrentConfig.Cache.Enabled = false
-	answerDisabled, cacheStateDisabled := cache.GetCachedLyrics(testSong)
-
-	global.CurrentConfig.Cache.Enabled = true
-	answerInfLifeSpan, cacheStateInfLifeSpan := cache.GetCachedLyrics(testSong)
-
-	if len(answerDisabled.Lyrics) != 0 || answerDisabled.LyricsType != 0 || len(answerDisabled.LyricTimestamps) != 0 || cacheStateDisabled != cache.CacheStateDisabled {
-		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Disabled caching in config doesn't stop getter from getting cached data")
-	}
-
-	if len(answerInfLifeSpan.Lyrics) != 2 || answerInfLifeSpan.LyricsType != 0 || len(answerInfLifeSpan.LyricTimestamps) != 2 || cacheStateInfLifeSpan != cache.CacheStateActive {
-		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Received wrong cached data: expected [%v]string, [%v]float64, %v and %v, received [%v]string, [%v]float64, %v and %v",
-			len(testSong.LyricsData.Lyrics), len(testSong.LyricsData.LyricTimestamps), testSong.LyricsData.LyricsType, cache.CacheStateActive,
-			len(answerInfLifeSpan.Lyrics), len(answerInfLifeSpan.LyricTimestamps), answerInfLifeSpan.LyricsType, cacheStateInfLifeSpan,
+	if len(answerInfLifeSpan.Lyrics) != 2 || answerInfLifeSpan.LyricsState != 0 || cacheStateInfLifeSpan != cache.CacheStateActive {
+		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Received wrong cached data: expected %v, %v and %v, received %v, %v and %v",
+			testSong.LyricsData.Lyrics, testSong.LyricsData.LyricsState, cache.CacheStateActive,
+			answerInfLifeSpan.Lyrics, answerInfLifeSpan.LyricsState, cacheStateInfLifeSpan,
 		)
 	}
 
-	cache.RemoveCachedLyrics(testSong)
+	if answerInfLifeSpan.Lyrics[0] != testSong.LyricsData.Lyrics[0] ||
+		answerInfLifeSpan.Lyrics[1] != testSong.LyricsData.Lyrics[1] {
+		t.Errorf("[tests/cache/TestStoreGetCycle] ERROR: Received wrong cached data: expected %v and %v, received %v and %v",
+			testSong.LyricsData.Lyrics[0], testSong.LyricsData.Lyrics[1],
+			answerInfLifeSpan.Lyrics[0], answerInfLifeSpan.Lyrics[1],
+		)
+	}
 }

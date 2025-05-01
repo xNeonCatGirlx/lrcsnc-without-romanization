@@ -3,32 +3,25 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"os"
 	"strings"
 	"time"
 
-	"lrcsnc/internal/log"
 	"lrcsnc/internal/pkg/errors"
 	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/structs"
-	"lrcsnc/internal/pkg/util"
 )
 
-// Get retrieves the cached lyrics data for a given song.
+// Fetch retrieves the cached lyrics data for a given song.
 // It first checks if the cache is enabled. If not, it returns an empty LyricsData and CacheStateDisabled.
 // If the cache is enabled, it constructs the cache file path using the song ID.
 // It attempts to read the cache file and unmarshal its contents into a LyricsData struct.
 // If successful, it checks if the cache has expired based on the configured cache lifespan.
 // It returns the cached data along with the appropriate CacheState (Active, Expired, or NonExistant).
-//
-// Parameters:
-//   - song: A pointer to the Song struct for which the cached lyrics data is to be retrieved.
-//
-// Returns:
-//   - LyricsData: The cached lyrics data.
-//   - CacheState: The state of the cache (Disabled, Active, Expired, or NonExistant).
-func Get(song *structs.Song) (structs.LyricsData, CacheState) {
+func Fetch(song *structs.Song) (structs.LyricsData, CacheState) {
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
 
@@ -40,22 +33,23 @@ func Get(song *structs.Song) (structs.LyricsData, CacheState) {
 	filename := getFilename(song)
 	fullPath := cacheDirectory + "/" + filename + ".json"
 
-	log.Debug("cache/Get", fmt.Sprintf("Trying to get the cached data for %v", filename))
+	log.Debug("cache/Fetch", fmt.Sprintf("Fetching cache for song %v - %v under the name %v.json", strings.Join(song.Artists, ", "), song.Title, filename))
 
 	if file, err := os.ReadFile(fullPath); err == nil {
 		var cachedData structs.LyricsData
 		err = json.Unmarshal(file, &cachedData)
 		if err != nil {
-			log.Debug("cache/Get", fmt.Sprintf("Couldn't unmarshal the cached data for %v", filename))
+			log.Error("cache/Fetch", "Couldn't unmarshal the data: "+err.Error())
 			return structs.LyricsData{}, CacheStateNonExistant
 		}
 
-		log.Debug("cache/Get", fmt.Sprintf("Successfully got the cached data for %v", filename))
+		log.Debug("cache/Fetch", "Done")
 
-		if global.Config.C.Cache.CacheLifeSpan != 0 {
+		if global.Config.C.Cache.LifeSpan != 0 {
 			cacheStats, _ := os.Lstat(fullPath)
-			isExpired := time.Since(cacheStats.ModTime()).Hours() <= float64(global.Config.C.Cache.CacheLifeSpan)*24
+			isExpired := time.Since(cacheStats.ModTime()).Hours() >= float64(global.Config.C.Cache.LifeSpan)
 			if isExpired {
+				log.Debug("cache/Fetch", fmt.Sprintf("Cache has expired (%vh <= %vh)", time.Since(cacheStats.ModTime()).Hours(), float64(global.Config.C.Cache.LifeSpan)))
 				return cachedData, CacheStateExpired
 			} else {
 				return cachedData, CacheStateActive
@@ -64,25 +58,19 @@ func Get(song *structs.Song) (structs.LyricsData, CacheState) {
 			return cachedData, CacheStateActive
 		}
 	} else {
+		log.Debug("cache/Fetch", "Cache does not exist (in the end it doesn't even matter)")
 		return structs.LyricsData{}, CacheStateNonExistant
 	}
 }
 
 // Store saves the lyrics data of a given song to a JSON file in the cache directory.
-//
-// Parameters:
-//   - song: A pointer to a Song struct containing the lyrics data to be stored.
-//
-// Returns:
-//   - error: An error if any occurs during the process of creating the cache directory,
-//     marshalling the song's lyrics data, or writing the data to a file.
 func Store(song *structs.Song) error {
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
 
 	cacheDirectory := getCacheDir()
 	if _, err := os.ReadDir(cacheDirectory); err != nil {
-		err = os.Mkdir(cacheDirectory, 0666)
+		err = os.Mkdir(cacheDirectory, 0o744)
 		if err != nil {
 			return errors.ErrDirUnwriteable
 		}
@@ -91,14 +79,19 @@ func Store(song *structs.Song) error {
 	filename := getFilename(song)
 	fullPath := cacheDirectory + "/" + filename + ".json"
 
+	log.Debug("cache/Store", fmt.Sprintf("Storing cache for song %v - %v under the name %v.json", strings.Join(song.Artists, ", "), song.Title, filename))
+
 	encodedData, err := json.Marshal(song.LyricsData)
 	if err != nil {
+		log.Error("cache/Store", "Failed to marshal the data: "+err.Error())
 		return errors.ErrMarshalFail
 	}
 
-	if err := os.WriteFile(fullPath, []byte(encodedData), 0666); err != nil {
+	if err := os.WriteFile(fullPath, []byte(encodedData), 0o644); err != nil {
+		log.Error("cache/Store", "Failed to write the cache file: "+err.Error())
 		return errors.ErrFileUnwriteable
 	}
+	log.Debug("cache/Store", "Done")
 	return nil
 }
 
@@ -107,13 +100,8 @@ func Store(song *structs.Song) error {
 // If the specific cached file for the song cannot be removed,
 // it logs an error message and returns an ErrFileUnreachable error.
 //
-// Parameters:
-//   - song: A pointer to the Song struct representing the song whose cached data
-//     needs to be removed.
-//
-// Returns:
-//   - error: An error if the cache directory is not reachable or if the specific
-//     cached file cannot be removed, otherwise nil.
+// It's not really used anywhere for now, only in cache unit test,
+// but it was useful in the past and might be again in the future.
 func Remove(song *structs.Song) error {
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
@@ -125,23 +113,27 @@ func Remove(song *structs.Song) error {
 
 	filename := getFilename(song)
 	fullPath := cacheDirectory + "/" + filename + ".json"
+	log.Debug("cache/Remove", fmt.Sprintf("Removing cache for song %v - %v under the name %v.json", strings.Join(song.Artists, ", "), song.Title, filename))
 
 	if err := os.Remove(fullPath); err != nil {
 		log.Error("cache/Remove", fmt.Sprintf("Couldn't delete the cached data for %v. Maybe the data didn't exist in the first place?", filename))
 		return errors.ErrFileUnreachable
 	}
+	log.Debug("cache/Remove", "Done")
 	return nil
 }
 
 func getCacheDir() string {
-	return os.ExpandEnv(global.Config.C.Cache.CacheDir)
+	return os.ExpandEnv(global.Config.C.Cache.Dir)
 }
 
 func getFilename(song *structs.Song) string {
-	return fmt.Sprintf("%v.%v.%v.%v",
-		util.RemoveBadCharacters(song.Title),
-		util.RemoveBadCharacters(strings.Join(song.Artists, ", ")),
-		util.RemoveBadCharacters(song.Album),
+	h := fnv.New64a()
+	h.Write(fmt.Appendf([]byte{}, "%v.%v.%v.%v",
+		song.Title,
+		strings.Join(song.Artists, ", "),
+		song.Album,
 		math.Round(song.Duration),
-	)
+	))
+	return fmt.Sprint(h.Sum64())
 }
