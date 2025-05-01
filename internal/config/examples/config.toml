@@ -1,20 +1,12 @@
 # For more information, check wiki:
 # https://github.com/Endg4meZer0/lrcsnc/wiki/Configuration
 
-[global]
-output = "piped"
-lyrics-provider = "lrclib"
-
-[global.log]
-enabled = true
-destination = "$HOME/.local/state/lrcsnc/log"
-level = "info"
-
 [player]
 included-players = ["cmus", "spotify"]
 excluded-players = []
 
 [lyrics]
+provider = "lrclib"
 timestamp-offset = 0.0
 
 [lyrics.romanization]
@@ -24,13 +16,23 @@ korean = true
 
 [cache]
 enabled = true
-cache-dir = "$HOME/.cache/lrcsnc"
-cache-life-span = 840
+dir = "$HOME/.cache/lrcsnc"
+life-span = 168
+store-condition = 100
+
+[output]
+type = "tui"
 
 [output.piped]
 destination = "stdout"
-output-format = "{icon} {lyric} {multiplier}"
-multiplier-format = "(x{value})"
+json = false
+insert-newline = true
+
+[output.piped.text]
+format = "{icon} {lyric} {multiplier}"
+
+[output.piped.multiplier]
+format = "(x{value})"
 
 [output.piped.lyric]
 icon = "♫"

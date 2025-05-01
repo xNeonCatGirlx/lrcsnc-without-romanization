@@ -26,34 +26,25 @@ func Validate(c *structs.Config) (errs ValidationErrors) {
 	errs = make(ValidationErrors, 0)
 
 	// Check whether output value is allowed
-	if c.Global.Output != "piped" && c.Global.Output != "tui" {
+	if c.Output.Type != "piped" && c.Output.Type != "tui" {
 		errs = append(errs, ValidationError{
 			Path:    "global/output",
-			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'piped' and 'tui'", c.Global.Output),
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'piped' and 'tui'", c.Output.Type),
 			Fatal:   true,
 		})
 	}
 
 	// Check whether lrclib is set as the lyrics provider
-	if c.Global.LyricsProvider != "lrclib" {
+	if c.Lyrics.Provider != "lrclib" {
 		errs = append(errs, ValidationError{
 			Path:    "global/lyrics-provider",
-			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'lrclib' (sure hope there will be more in the future)", c.Global.LyricsProvider),
-			Fatal:   true,
-		})
-	}
-
-	// Check whether log level is valid
-	if c.Global.Log.Level.ToInt() == -1 {
-		errs = append(errs, ValidationError{
-			Path:    "global/log/level",
-			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'debug', 'info', 'warn', 'error' and 'fatal'", c.Global.Log.Level),
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'lrclib' (sure hope there will be more in the future)", c.Lyrics.Provider),
 			Fatal:   true,
 		})
 	}
 
 	// Check if piped output's destination is writeable if it's not stdout
-	if c.Global.Output == "piped" && c.Output.Piped.Destination != "stdout" && !isPathWriteable(c.Output.Piped.Destination) {
+	if c.Output.Type == "piped" && c.Output.Piped.Destination != "stdout" && !isPathWriteable(c.Output.Piped.Destination) {
 		errs = append(errs, ValidationError{
 			Path:    "output/piped/destination",
 			Message: fmt.Sprintf("'%s' is not a writeable path. Please make sure the path exists and is writeable", c.Output.Piped.Destination),
@@ -62,7 +53,7 @@ func Validate(c *structs.Config) (errs ValidationErrors) {
 	}
 
 	// Check if the instrumental interval is set to <0.1s
-	if c.Global.Output == "piped" && c.Output.Piped.Instrumental.Interval < 0.1 {
+	if c.Output.Type == "piped" && c.Output.Piped.Instrumental.Interval < 0.1 {
 		errs = append(errs, ValidationError{
 			Path:    "output/piped/instrumental/interval",
 			Message: fmt.Sprintf("'%f' is not a valid value. Using the possible minimum instead (0.1s)", c.Output.Piped.Instrumental.Interval),
@@ -72,7 +63,7 @@ func Validate(c *structs.Config) (errs ValidationErrors) {
 	}
 
 	// Check if max symbols is less than 1
-	if c.Global.Output == "piped" && c.Output.Piped.Instrumental.MaxSymbols < 1 {
+	if c.Output.Type == "piped" && c.Output.Piped.Instrumental.MaxSymbols < 1 {
 		errs = append(errs, ValidationError{
 			Path:    "output/piped/instrumental/max-symbols",
 			Message: fmt.Sprintf("'%d' is not a valid value. Using the possible minimum instead (1)", c.Output.Piped.Instrumental.MaxSymbols),
@@ -81,7 +72,7 @@ func Validate(c *structs.Config) (errs ValidationErrors) {
 		c.Output.Piped.Instrumental.MaxSymbols = 1
 	}
 
-	if c.Global.Output == "tui" {
+	if c.Output.Type == "tui" {
 		// Check if the colors in the theme are not allowed
 		if !isValidColor(c.Output.TUI.Theme.ProgressBarColor) {
 			errs = append(errs, ValidationError{

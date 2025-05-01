@@ -5,21 +5,24 @@ import (
 	"os"
 	"strings"
 
-	"lrcsnc/internal/log"
 	errs "lrcsnc/internal/pkg/errors"
 	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/structs"
 
 	"github.com/pelletier/go-toml/v2"
 )
 
 func Read(path string) error {
-	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
+	if _, err := os.Stat(os.ExpandEnv(path)); os.IsNotExist(err) {
+		log.Error("config/Read", "Config file does not exist or is unreachable.")
+		return errs.ErrFileUnreachable
+	}
 
 	configFile, err := os.ReadFile(os.ExpandEnv(path))
 	if err != nil {
-		return errs.ErrFileUnreachable
+		log.Error("config/Read", "Config file is reachable, but unreadable.")
+		return errs.ErrFileUnreadable
 	}
 
 	var config structs.Config
@@ -45,10 +48,13 @@ func Read(path string) error {
 	}
 
 	if !fatal {
+		global.Config.M.Lock()
 		global.Config.C = config
 		global.Config.Path = path
+		global.Config.M.Unlock()
+		log.Info("config/Read", "Config file loaded successfully.")
 	} else {
-		log.Error("config/Read", "Fatal errors in the config were detected.")
+		log.Error("config/Read", "Fatal errors in the config were detected during validation.")
 		return errs.ErrConfigFatalValidation
 	}
 
@@ -56,41 +62,27 @@ func Read(path string) error {
 }
 
 func ReadUserWide() error {
-	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
-
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
-	userConfigDir += "/lrcsnc"
 
-	if _, err := os.Stat(userConfigDir + "/config.toml"); err != nil {
-		return errors.New("user config file doesn't exist")
-	}
-
-	return Read(userConfigDir + "/config.toml")
+	return Read(userConfigDir + "/lrcsnc/config.toml")
 }
 
 func ReadSystemWide() error {
-	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
-
-	sysWideConfigPath := "/etc/lrcsnc/config.toml"
-	_, err := os.Stat(sysWideConfigPath)
-	if err != nil {
-		log.Error("config/ReadSystemWide", "The system-wide config doesn't exist.")
-		return errs.ErrFileUnreachable
-	}
-
-	return Read(sysWideConfigPath)
+	return Read("/etc/lrcsnc/config.toml")
 }
 
 func Update() {
+	if global.Config.Path == "default" {
+		return
+	}
+
 	if err := Read(global.Config.Path); err != nil {
 		switch {
 		case errors.Is(err, errs.ErrFileUnreachable):
-			log.Error("config/Update", "The config file is now unreachable. The configuration will remain the same until restart.")
+			log.Error("config/Update", "The config file is now unreachable. The configuration will remain the same until restart or until the config file reappears.")
 		default:
 			log.Error("config/Update", "Unknown error: "+err.Error())
 		}

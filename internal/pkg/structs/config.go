@@ -7,20 +7,19 @@ import (
 // LEVEL 0
 
 type Config struct {
-	Global GlobalConfig `toml:"global"`
+	// Player config is for player related things. Currently it is used
+	// for specifying included/excluded players for the watcher.
 	Player PlayerConfig `toml:"player"`
+	// Lyrics config currently has stuff to do with lyrics providers,
+	// time offset and romanization
 	Lyrics LyricsConfig `toml:"lyrics"`
-	Cache  CacheConfig  `toml:"cache"`
+	// Cache config has an "enabled" toggle, dir path and life span
+	Cache CacheConfig `toml:"cache"`
+	// Output config has... a lot of personalized settings.
 	Output OutputConfig `toml:"output"`
 }
 
 // LEVEL 1
-
-type GlobalConfig struct {
-	Output         types.OutputType         `toml:"output"`
-	LyricsProvider types.LyricsProviderType `toml:"lyrics-provider"`
-	Log            LogConfig                `toml:"log"`
-}
 
 type PlayerConfig struct {
 	IncludedPlayers []string `toml:"included-players"`
@@ -28,28 +27,25 @@ type PlayerConfig struct {
 }
 
 type LyricsConfig struct {
-	TimestampOffset float64            `toml:"timestamp-offset"`
-	Romanization    RomanizationConfig `toml:"romanization"`
+	Provider        types.LyricsProviderType `toml:"provider"`
+	TimestampOffset float64                  `toml:"timestamp-offset"`
+	Romanization    RomanizationConfig       `toml:"romanization"`
 }
 
 type CacheConfig struct {
-	Enabled       bool   `toml:"enabled"`
-	CacheDir      string `toml:"cache-dir"`
-	CacheLifeSpan uint   `toml:"cache-life-span"`
+	Enabled        bool                          `toml:"enabled"`
+	Dir            string                        `toml:"dir"`
+	LifeSpan       uint                          `toml:"life-span"`
+	StoreCondition types.CacheStoreConditionType `toml:"store-condition"`
 }
 
 type OutputConfig struct {
+	Type  types.OutputType  `toml:"type"`
 	Piped PipedOutputConfig `toml:"piped"`
 	TUI   TUIOutputConfig   `toml:"tui"`
 }
 
 // LEVEL 2
-
-type LogConfig struct {
-	Enabled     bool               `toml:"enabled"`
-	Destination string             `toml:"destination"`
-	Level       types.LogLevelType `toml:"level"`
-}
 
 type RomanizationConfig struct {
 	Japanese bool `toml:"japanese"`
@@ -62,15 +58,17 @@ func (r *RomanizationConfig) IsEnabled() bool {
 }
 
 type PipedOutputConfig struct {
-	Destination      string              `toml:"destination"`
-	OutputFormat     string              `toml:"output-format"`
-	MultiplierFormat string              `toml:"multiplier-format"`
-	Lyric            LyricOutputConfig   `toml:"lyric"`
-	SongNotFound     MessageOutputConfig `toml:"song-not-found"`
-	NoSyncedLyrics   MessageOutputConfig `toml:"no-synced-lyrics"`
-	GettingLyrics    MessageOutputConfig `toml:"getting-lyrics"`
-	ErrorMessage     MessageOutputConfig `toml:"error-message"`
-	Instrumental     InstrumentalConfig  `toml:"instrumental"`
+	Destination    string              `toml:"destination"`
+	JSON           bool                `toml:"json"`
+	InsertNewline  bool                `toml:"insert-newline"`
+	Text           FormatOutputConfig  `toml:"text"`
+	Multiplier     FormatOutputConfig  `toml:"multiplier"`
+	Lyric          LyricOutputConfig   `toml:"lyric"`
+	SongNotFound   MessageOutputConfig `toml:"song-not-found"`
+	NoSyncedLyrics MessageOutputConfig `toml:"no-synced-lyrics"`
+	GettingLyrics  MessageOutputConfig `toml:"getting-lyrics"`
+	ErrorMessage   MessageOutputConfig `toml:"error-message"`
+	Instrumental   InstrumentalConfig  `toml:"instrumental"`
 }
 
 // TODO: Move ShowTimestamps and ShowProgressBar to a state file
@@ -81,6 +79,10 @@ type TUIOutputConfig struct {
 }
 
 // LEVEL 3
+
+type FormatOutputConfig struct {
+	Format string `toml:"format"`
+}
 
 type LyricOutputConfig struct {
 	Icon string `toml:"icon"`

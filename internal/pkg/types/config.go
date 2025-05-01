@@ -1,5 +1,29 @@
 package types
 
+// LyricsProviderType sets which lyrics provider to use.
+//
+// Possible values: "lrclib".
+type LyricsProviderType string
+
+const (
+	LyricsProviderLrclib LyricsProviderType = "lrclib"
+)
+
+// CacheStoreConditionType is a bit flag that sets the condition for when to save cache
+//
+// Possible values:
+// - first 1 for when the lyrics are synced,
+// - second 1 for when the lyrics are plain,
+// - third 1 for when the song is instrumental,
+type CacheStoreConditionType uint8
+
+const (
+	CacheStoreConditionSynced       CacheStoreConditionType = 0b100
+	CacheStoreConditionPlain        CacheStoreConditionType = 0b010
+	CacheStoreConditionInstrumental CacheStoreConditionType = 0b001
+	CacheStoreConditionNone         CacheStoreConditionType = 0b000
+)
+
 // OutputType is a type of output to use.
 //
 // Possible values: "piped", "tui".
@@ -8,15 +32,6 @@ type OutputType string
 const (
 	OutputPiped OutputType = "piped"
 	OutputTUI   OutputType = "tui"
-)
-
-// LyricsProviderType sets which lyrics provider to use.
-//
-// Possible values: "lrclib".
-type LyricsProviderType string
-
-const (
-	LyricsProviderLrclib LyricsProviderType = "lrclib"
 )
 
 // LogLevelType represents the log level to use in logger.
