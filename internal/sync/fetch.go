@@ -1,16 +1,16 @@
 package sync
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
-	"lrcsnc/internal/log"
 	"lrcsnc/internal/lyrics"
 	"lrcsnc/internal/output"
+	errs "lrcsnc/internal/pkg/errors"
 	"lrcsnc/internal/pkg/global"
 )
 
-var songChanged chan bool = make(chan bool, 1)
+var songChanged chan bool = make(chan bool)
 var lastDownloadStart time.Time
 
 func lyricFetcher() {
@@ -24,9 +24,10 @@ func lyricFetcher() {
 
 		go func() {
 			thisDownloadStart := lastDownloadStart
-			lyricsData, err := lyrics.GetLyricsData(global.Player.P.Song)
-			if err != nil {
-				log.Error("sync/fetch", fmt.Sprintf("Could not get the lyrics: %v", err))
+
+			lyricsData, err := lyrics.Fetch()
+			if err != nil && !errors.Is(err, errs.ErrLyricsNotFound) {
+				return
 			}
 
 			if thisDownloadStart != lastDownloadStart {
@@ -39,7 +40,7 @@ func lyricFetcher() {
 			global.Player.P.Song.LyricsData = lyricsData
 			global.Player.M.Unlock()
 
-			go output.Controllers[global.Config.C.Global.Output].OnPlayerChange()
+			go output.Controllers[global.Config.C.Output.Type].OnPlayerUpdate()
 
 			// And finally, it ends with a position sync
 			AskForPositionSync()
