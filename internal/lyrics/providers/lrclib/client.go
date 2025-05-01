@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"lrcsnc/internal/pkg/errors"
+	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/structs"
 )
 
@@ -43,6 +44,7 @@ func makeURL(song structs.Song, t lrcLibURLType) (out *url.URL) {
 	}
 	out, err := url.Parse(rawURL)
 	if err != nil {
+		log.Error("lyrics/providers/lrclib/makeURL", fmt.Sprintf("Failed to parse string (%v) to URL", rawURL))
 	}
 	return
 }

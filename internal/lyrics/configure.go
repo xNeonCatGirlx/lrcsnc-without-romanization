@@ -1,20 +1,24 @@
 package lyrics
 
 import (
-	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/structs"
 	"lrcsnc/internal/romanization"
 )
 
 // Configure sets up the lyrics data by applying necessary configurations.
 // Currently, it only applies romanization to the lyrics data.
+// May be extended in the future.
 //
-// Parameters:
-//   - lyricsData (*structs.LyricsData): A pointer to the LyricsData struct containing the lyrics to be configured.
+// Every function/method/module/whatever needs to lock the mutex
+// by themselves and only themselves.
+// No locking a mutex in THIS function.
 func Configure(lyricsData *structs.LyricsData) {
-	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
+	log.Debug("lyrics/configure", "Starting configuring the received lyrics")
 
 	// Romanization
-	romanization.RomanizeLyrics(lyricsData.Lyrics)
+	log.Debug("lyrics/configure", "Applying romanization if enabled and necessary")
+	romanization.Romanize(lyricsData.Lyrics)
+
+	log.Debug("lyrics/configure", "Done")
 }
