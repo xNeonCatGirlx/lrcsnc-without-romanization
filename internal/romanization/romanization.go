@@ -1,33 +1,32 @@
 package romanization
 
 import (
-	"lrcsnc/internal/pkg/global"
-	"lrcsnc/internal/pkg/structs"
-	"strings"
 	"unicode"
 
-	zh "github.com/mozillazg/go-pinyin"
-	jp "github.com/sarumaj/go-kakasi"
-	kr "github.com/srevinsaju/korean-romanizer-go"
+	"lrcsnc/internal/pkg/global"
+	"lrcsnc/internal/pkg/structs"
 )
 
-// TODO: there may be songs with mixed languages, so we may need to romanize each line separately
+// TODO: PROBABLY DONE BUT CHECK! there may be songs with mixed languages, so we may need to romanize each symbol separately
 
 // Supported languages are listed here
-type Language uint
 
-var (
-	LanguageDefault  Language = 0
-	LanguageJapanese Language = 1
-	LanguageKorean   Language = 2
-	LanguageChinese  Language = 3
+// Language is a bitset of supported languages
+// (each language has its own bit)
+type Language uint8
+
+const (
+	LanguageDefault  Language = 0b0
+	LanguageJapanese Language = 0b1 << iota
+	LanguageKorean
+	LanguageChinese
 )
 
 // Unicode range tables accordingly are listed here
+
 var jpUnicodeRangeTable = []*unicode.RangeTable{
 	unicode.Hiragana,
 	unicode.Katakana,
-	unicode.Diacritic,
 }
 
 var krUnicodeRangeTable = []*unicode.RangeTable{
@@ -35,114 +34,87 @@ var krUnicodeRangeTable = []*unicode.RangeTable{
 }
 
 var zhUnicodeRangeTable = []*unicode.RangeTable{
+	unicode.Diacritic,
 	unicode.Ideographic,
 	unicode.Han,
 }
 
 // Returns romanized lyrics (or the same lyrics if the language is not supported)
-func RomanizeLyrics(lyrics []structs.Lyric) {
+func Romanize(lyrics []structs.Lyric) {
 	global.Config.M.Lock()
-	defer global.Config.M.Unlock()
 
 	if !global.Config.C.Lyrics.Romanization.IsEnabled() {
 		return
 	}
 
-	lang := getLang(lyrics)
-	if lang == 0 {
-		return
-	}
+	global.Config.M.Unlock()
 
 	for i := range lyrics {
-		var rstr string = ""
-		if len(lyrics[i].Text) != 0 {
-			rstr = romanize(lyrics[i].Text, lang)
+		lang := getLang(lyrics[i])
+		if lang == LanguageDefault {
+			continue
 		}
-		lyrics[i].Text = rstr
+
+		if len(lyrics[i].Text) != 0 {
+			rstr := sanitizeAfter(romanize(sanitizeBefore(lyrics[i].Text), lang)) // one hell of a mess lmao
+			lyrics[i].Text = rstr
+		}
 	}
 }
 
-// Returns the first found language supported by romanization module,
-// or falls back to LanguageDefault if no supported language is found
-func getLang(lyrics []structs.Lyric) Language {
+// getLang returns the detected languages that are supported by romanization module
+// in form of the Language bit set.
+func getLang(lyric structs.Lyric) (lang Language) {
 	global.Config.M.Lock()
 	defer global.Config.M.Unlock()
 
+	lang = LanguageDefault
+
+	// The idea of checking Japanese only by Hirogana and Katakana may backfire
+	// if there are actually any songs where some lines contain only kanji.
+	// But I don't seem to come up with any other solution of how to
+	// differentiate between Japanese and Chinese when it comes to complex characters.
+	// So, right now, kanji are detected as Chinese, but only if there were no
+	// Japanese characters in the line already.
+
 	if global.Config.C.Lyrics.Romanization.Japanese {
-		for i := range lyrics {
-			if isChar(lyrics[i].Text, jpUnicodeRangeTable) {
-				return LanguageJapanese
-			}
+		if hasCharsOf(lyric.Text, jpUnicodeRangeTable) {
+			lang |= LanguageJapanese
 		}
 	}
 	if global.Config.C.Lyrics.Romanization.Korean {
-		for i := range lyrics {
-			if isChar(lyrics[i].Text, krUnicodeRangeTable) {
-				return LanguageKorean
-			}
+		if hasCharsOf(lyric.Text, krUnicodeRangeTable) {
+			lang |= LanguageKorean
 		}
 	}
-	if global.Config.C.Lyrics.Romanization.Chinese {
-		for i := range lyrics {
-			if isChar(lyrics[i].Text, zhUnicodeRangeTable) {
-				return LanguageChinese
-			}
+	// Chinese romanization only enables if no Japanese has been detected
+	if global.Config.C.Lyrics.Romanization.Chinese && lang&LanguageJapanese == 0 {
+		if hasCharsOf(lyric.Text, zhUnicodeRangeTable) {
+			lang |= LanguageChinese
 		}
 	}
-	return LanguageDefault
+
+	return
 }
 
 // Returns a romanized string based on the provided language
 func romanize(str string, lang Language) (out string) {
-	switch lang {
-	case LanguageJapanese:
-		kakasiConverter, err := jp.NewKakasi()
-		if err != nil {
-			// TODO: logger
-			panic(err)
-		}
-
-		converted, err := kakasiConverter.Convert(str)
-		if err != nil {
-			// TODO: logger
-			panic(err)
-		}
-
-		out = converted.Romanize()
-		if unicode.IsLower(rune(out[0])) {
-			out = strings.ToUpper(out[:1]) + out[1:]
-		}
-	case LanguageKorean:
-		r := kr.NewRomanizer(str)
-		out = r.Romanize()
-		if unicode.IsLower(rune(out[0])) {
-			out = strings.ToUpper(out[:1]) + out[1:]
-		}
-	case LanguageChinese:
-		out = zhCharToPinyin(str)
-		if unicode.IsLower(rune(out[0])) {
-			out = strings.ToUpper(out[:1]) + out[1:]
-		}
+	switch {
+	case lang&LanguageJapanese != 0:
+		out = Romanizers[LanguageJapanese].Romanize(str)
+	case lang&LanguageKorean != 0:
+		out = Romanizers[LanguageKorean].Romanize(str)
+	case lang&LanguageChinese != 0:
+		out = Romanizers[LanguageChinese].Romanize(str)
 	}
 	return out
 }
 
-func isChar(s string, rangeTable []*unicode.RangeTable) bool {
+func hasCharsOf(s string, rangeTable []*unicode.RangeTable) bool {
 	for _, r := range s {
 		if unicode.IsOneOf(rangeTable, r) {
 			return true
 		}
 	}
 	return false
-}
-
-func zhCharToPinyin(p string) (s string) {
-	for _, r := range p {
-		if unicode.Is(unicode.Han, r) {
-			s += string(zh.Pinyin(string(r), zh.NewArgs())[0][0])
-		} else {
-			s += string(r)
-		}
-	}
-	return
 }
