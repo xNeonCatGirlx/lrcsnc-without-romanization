@@ -3,6 +3,8 @@ package config
 import (
 	_ "embed"
 	"errors"
+	"os"
+	"path"
 	"strings"
 
 	errs "lrcsnc/internal/pkg/errors"
@@ -51,4 +53,14 @@ func ReadDefault() error {
 	}
 
 	return nil
+}
+
+func CopyDefaultTo(p string) error {
+	if _, err := os.ReadDir(path.Dir(p)); os.IsNotExist(err) {
+		os.MkdirAll(path.Dir(p), 0755)
+	} else if err != nil {
+		return err
+	}
+
+	return os.WriteFile(p, defaultConfig, 0644)
 }

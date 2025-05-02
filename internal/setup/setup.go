@@ -18,14 +18,15 @@ import (
 var version = "dev"
 
 var opts struct {
-	NoLog          bool   `long:"no-log" description:"Disables logging. --log-file and --log-level are ignored if this flag is set." env:"LRCSNC_NO_LOG"`
-	LogPath        string `long:"log-file" description:"Sets the log file path to use. Default - '$HOME/.local/state/lrcsnc/log'." default:"$HOME/.local/state/lrcsnc/log" env:"LRCSNC_LOG_FILE"`
-	LogLevel       string `long:"log-level" description:"Sets the log level used by logger. Possible values: 'debug', 'info', 'warn', 'error', 'fatal'. Default - 'info'." default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" env:"LRCSNC_LOG_LEVEL"`
-	ConfigPath     string `short:"c" long:"config" description:"Sets the config file to use" env:"LRCSNC_CONFIG"`
-	CacheDirectory string `short:"d" long:"cache-dir" description:"Sets the cache directory" env:"LRCSNC_CACHE"`
-	IsPiped        bool   `short:"p" long:"piped" description:"Set the output to 'piped', fully ignoring the config." env:"LRCSNC_PIPED"`
-	OutputFilePath string `short:"o" long:"output" description:"Sets an output file to use instead of standard output when using piped output" env:"LRCSNC_OUTPUT"`
-	DisplayVersion bool   `short:"v" long:"version" description:"Display the version"`
+	NoLog              bool   `long:"no-log" description:"Disables logging. --log-file and --log-level are ignored if this flag is set." env:"LRCSNC_NO_LOG"`
+	LogPath            string `long:"log-file" description:"Sets the log file path to use. Default - '$HOME/.local/state/lrcsnc/log'." default:"$HOME/.local/state/lrcsnc/log" env:"LRCSNC_LOG_FILE"`
+	LogLevel           string `long:"log-level" description:"Sets the log level used by logger. Possible values: 'debug', 'info', 'warn', 'error', 'fatal'. Default - 'info'." default:"info" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" env:"LRCSNC_LOG_LEVEL"`
+	ConfigPath         string `short:"c" long:"config" description:"Sets the config file to use" env:"LRCSNC_CONFIG"`
+	ConfigGeneratePath string `long:"config-gen" description:"Generates a config from the default one and places it in the specified path, then exits" env:"LRCSNC_CONFIG_GEN"`
+	CacheDirectory     string `short:"d" long:"cache-dir" description:"Sets the cache directory" env:"LRCSNC_CACHE"`
+	IsPiped            bool   `short:"p" long:"piped" description:"Set the output to 'piped', fully ignoring the config." env:"LRCSNC_PIPED"`
+	OutputFilePath     string `short:"o" long:"output" description:"Sets an output file to use instead of standard output when using piped output" env:"LRCSNC_OUTPUT"`
+	DisplayVersion     bool   `short:"v" long:"version" description:"Display the version"`
 }
 
 // Setup parses the command line flags (or their environment variable equivalents)
@@ -42,6 +43,13 @@ func Setup() {
 	// Generic flags: -v...
 	if opts.DisplayVersion {
 		fmt.Println(version)
+		os.Exit(0)
+	}
+
+	if opts.ConfigGeneratePath != "" {
+		if err := config.CopyDefaultTo(opts.ConfigGeneratePath); err != nil {
+			log.Fatal("setup", fmt.Sprintf("Failed to generate config to '%s': %s", opts.ConfigGeneratePath, err.Error()))
+		}
 		os.Exit(0)
 	}
 
