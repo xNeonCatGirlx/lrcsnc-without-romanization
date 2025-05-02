@@ -106,6 +106,12 @@ func Init() {
 				if i >= j {
 					i = 1
 				}
+			} else {
+				writeChan <- ""
+				global.Player.M.Unlock()
+				global.Config.M.Unlock()
+				instrumentalTimer.Stop()
+				continue
 			}
 			global.Player.M.Unlock()
 			instrumentalTimer.Reset(time.Duration(global.Config.C.Output.Piped.Instrumental.Interval*1000) * time.Millisecond)

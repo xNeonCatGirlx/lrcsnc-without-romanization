@@ -108,6 +108,8 @@ func nameOwnerChangeWatcher() {
 			continue
 		}
 
+		log.Debug("mpris/nameOwnerChangesWatcher", "Received a useful signal. Probing ChangePlayer and passing to MPRISMessageChannel...")
+
 		err := ChangePlayer()
 		if err != nil {
 			log.Error("mpris/nameOwnerChangesWatcher", err.Error())

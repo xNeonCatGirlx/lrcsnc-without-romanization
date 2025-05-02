@@ -15,7 +15,11 @@ func mprisMessageReceiver() {
 		log.Debug("sync/mprisMessageReceiver", fmt.Sprintf("Received message: %v", msg))
 		switch msg.Type {
 		case mpris.SignalReady, mpris.SignalPlayerChanged:
-			songChanged <- true
+			if global.Player.P.PlaybackStatus != mprislib.PlaybackStopped {
+				songChanged <- true
+			} else {
+				output.Controllers[global.Config.C.Output.Type].DisplayLyric(-1)
+			}
 		case mpris.SignalSeeked:
 			// On seeked signal we just update the position...
 			global.Player.M.Lock()

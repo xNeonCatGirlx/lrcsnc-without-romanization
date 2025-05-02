@@ -6,6 +6,7 @@ import (
 
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/log"
+	"lrcsnc/internal/pkg/structs"
 	"lrcsnc/internal/pkg/types"
 
 	"github.com/Endg4meZer0/go-mpris"
@@ -152,6 +153,18 @@ func ChangePlayer() error {
 	// If no player is found, set the player to nil
 	log.Info("mpris/ChangePlayer", "No active player found. Zzz")
 	player = nil
+	global.Player.M.Lock()
+	global.Player.P = structs.Player{
+		PlaybackStatus: mpris.PlaybackStopped,
+		Position:       0.0,
+		Rate:           1.0,
+		Song: structs.Song{
+			LyricsData: structs.LyricsData{
+				LyricsState: types.LyricsStateUnknown,
+			},
+		},
+	}
+	global.Player.M.Unlock()
 	return nil
 }
 

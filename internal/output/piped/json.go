@@ -34,7 +34,7 @@ func FormatToJSON(text string) string {
 
 	jsonData, err := json.Marshal(jsonOutput)
 	if err != nil {
-		log.Error("piped", "Error marshalling JSON output: "+err.Error())
+		log.Error("output/piped", "Error marshalling JSON output: "+err.Error())
 		return "{}"
 	}
 
