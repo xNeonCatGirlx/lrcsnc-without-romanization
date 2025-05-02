@@ -13,9 +13,9 @@ func TestRomanize(t *testing.T) {
 	global.Config.C.Lyrics.Romanization.Chinese = true
 	global.Config.C.Lyrics.Romanization.Korean = true
 
-	ogJpLyric := "ああ？私に近づいてるの？"
+	noKakasiJpLyric := "ああ? 私に近づいてるの?"
 
-	jpLyrics := []structs.Lyric{{Text: ogJpLyric}}
+	jpLyrics := []structs.Lyric{{Text: "ああ？私に近づいてるの？"}}
 	krLyrics := []structs.Lyric{{Text: "어? 나한테 다가오니?"}}
 	zhLyrics := []structs.Lyric{{Text: "哦？你在接近我吗？"}}
 	romanLyrics := []structs.Lyric{{Text: "france?!?"}}
@@ -30,7 +30,7 @@ func TestRomanize(t *testing.T) {
 	rightAnswerDefault := []structs.Lyric{{Text: "france?!?"}}
 
 	if _, err := exec.LookPath("kakasi"); (err == nil && jpLyrics[0] != rightAnswerJapanese[0]) ||
-		(err != nil && jpLyrics[0].Text != ogJpLyric) ||
+		(err != nil && jpLyrics[0].Text != noKakasiJpLyric) ||
 		krLyrics[0] != rightAnswerKorean[0] ||
 		zhLyrics[0] != rightAnswerChinese[0] ||
 		romanLyrics[0] != rightAnswerDefault[0] {
