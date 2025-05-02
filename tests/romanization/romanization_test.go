@@ -4,6 +4,7 @@ import (
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/structs"
 	"lrcsnc/internal/romanization"
+	"os/exec"
 	"testing"
 )
 
@@ -12,7 +13,9 @@ func TestRomanize(t *testing.T) {
 	global.Config.C.Lyrics.Romanization.Chinese = true
 	global.Config.C.Lyrics.Romanization.Korean = true
 
-	jpLyrics := []structs.Lyric{{Text: "ああ？私に近づいてるの？"}}
+	ogJpLyric := "ああ？私に近づいてるの？"
+
+	jpLyrics := []structs.Lyric{{Text: ogJpLyric}}
 	krLyrics := []structs.Lyric{{Text: "어? 나한테 다가오니?"}}
 	zhLyrics := []structs.Lyric{{Text: "哦？你在接近我吗？"}}
 	romanLyrics := []structs.Lyric{{Text: "france?!?"}}
@@ -26,7 +29,8 @@ func TestRomanize(t *testing.T) {
 	rightAnswerChinese := []structs.Lyric{{Text: "Ó? Nǐzàijiējìnwǒma?"}}
 	rightAnswerDefault := []structs.Lyric{{Text: "france?!?"}}
 
-	if jpLyrics[0] != rightAnswerJapanese[0] ||
+	if _, err := exec.LookPath("kakasi"); (err == nil && jpLyrics[0] != rightAnswerJapanese[0]) ||
+		(err != nil && jpLyrics[0].Text != ogJpLyric) ||
 		krLyrics[0] != rightAnswerKorean[0] ||
 		zhLyrics[0] != rightAnswerChinese[0] ||
 		romanLyrics[0] != rightAnswerDefault[0] {
