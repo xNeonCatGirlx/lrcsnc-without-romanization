@@ -12,13 +12,11 @@ LDFLAGS_VERSION ?= -X lrcsnc/internal/setup.version=${VERSION}-${COMMIT}
 LDFLAGS ?= \
 	${LDFLAGS_VERSION}
 
-default: get build
-all: get build install clean
+default: build
+all: build install clean
 
-get:
-	${GO} get
 build:
-	${GO} build -ldflags="${LDFLAGS}" -o ${BIN}
+	${GO} build -ldflags="${LDFLAGS}" -o ${BIN} -v
 install: build
 	install -Dm755 ${BIN} ${DESTDIR}${PREFIX}/bin/${BIN}
 package: build
