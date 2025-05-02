@@ -7,7 +7,7 @@ const (
 	LyricsStatePlain        LyricsState = 1
 	LyricsStateInstrumental LyricsState = 2
 	LyricsStateNotFound     LyricsState = 3
-	LyricsStateInProgress   LyricsState = 4
+	LyricsStateLoading      LyricsState = 4
 	LyricsStateUnknown      LyricsState = 5
 )
 
@@ -21,8 +21,8 @@ func (l LyricsState) String() string {
 		return "instrumental"
 	case LyricsStateNotFound:
 		return "not-found"
-	case LyricsStateInProgress:
-		return "in-progress"
+	case LyricsStateLoading:
+		return "loading"
 	default:
 		return "unknown"
 	}

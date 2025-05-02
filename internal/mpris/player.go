@@ -210,7 +210,7 @@ func ApplyMetadataOntoGlobal(md mpris.Metadata) (err error) {
 		return err
 	}
 	global.Player.P.Song.Duration = float64(dur) / 1000 / 1000
-	global.Player.P.Song.LyricsData.LyricsState = types.LyricsStateInProgress
+	global.Player.P.Song.LyricsData.LyricsState = types.LyricsStateLoading
 
 	return nil
 }

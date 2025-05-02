@@ -90,8 +90,8 @@ func Init() {
 					stringToPrint = getInstrumentalMessage(global.Config.C.Output.Piped.NoSyncedLyrics, global.Config.C.Output.Piped.Text.Format)
 				case types.LyricsStateNotFound:
 					stringToPrint = getInstrumentalMessage(global.Config.C.Output.Piped.SongNotFound, global.Config.C.Output.Piped.Text.Format)
-				case types.LyricsStateInProgress:
-					stringToPrint = getInstrumentalMessage(global.Config.C.Output.Piped.GettingLyrics, global.Config.C.Output.Piped.Text.Format)
+				case types.LyricsStateLoading:
+					stringToPrint = getInstrumentalMessage(global.Config.C.Output.Piped.LoadingLyrics, global.Config.C.Output.Piped.Text.Format)
 				default:
 					stringToPrint = getInstrumentalMessage(global.Config.C.Output.Piped.ErrorMessage, global.Config.C.Output.Piped.Text.Format)
 				}

@@ -67,7 +67,7 @@ type PipedOutputConfig struct {
 	NotPlaying     NotPlayingOutputConfig `toml:"not-playing"`
 	SongNotFound   MessageOutputConfig    `toml:"song-not-found"`
 	NoSyncedLyrics MessageOutputConfig    `toml:"no-synced-lyrics"`
-	GettingLyrics  MessageOutputConfig    `toml:"getting-lyrics"`
+	LoadingLyrics  MessageOutputConfig    `toml:"loading-lyrics"`
 	ErrorMessage   MessageOutputConfig    `toml:"error-message"`
 	Instrumental   InstrumentalConfig     `toml:"instrumental"`
 }
