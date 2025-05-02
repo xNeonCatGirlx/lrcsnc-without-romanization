@@ -57,17 +57,18 @@ func (r *RomanizationConfig) IsEnabled() bool {
 }
 
 type PipedOutputConfig struct {
-	Destination    string              `toml:"destination"`
-	JSON           bool                `toml:"json"`
-	InsertNewline  bool                `toml:"insert-newline"`
-	Text           FormatOutputConfig  `toml:"text"`
-	Multiplier     FormatOutputConfig  `toml:"multiplier"`
-	Lyric          LyricOutputConfig   `toml:"lyric"`
-	SongNotFound   MessageOutputConfig `toml:"song-not-found"`
-	NoSyncedLyrics MessageOutputConfig `toml:"no-synced-lyrics"`
-	GettingLyrics  MessageOutputConfig `toml:"getting-lyrics"`
-	ErrorMessage   MessageOutputConfig `toml:"error-message"`
-	Instrumental   InstrumentalConfig  `toml:"instrumental"`
+	Destination    string                 `toml:"destination"`
+	JSON           bool                   `toml:"json"`
+	InsertNewline  bool                   `toml:"insert-newline"`
+	Text           FormatOutputConfig     `toml:"text"`
+	Multiplier     FormatOutputConfig     `toml:"multiplier"`
+	Lyric          LyricOutputConfig      `toml:"lyric"`
+	NotPlaying     NotPlayingOutputConfig `toml:"not-playing"`
+	SongNotFound   MessageOutputConfig    `toml:"song-not-found"`
+	NoSyncedLyrics MessageOutputConfig    `toml:"no-synced-lyrics"`
+	GettingLyrics  MessageOutputConfig    `toml:"getting-lyrics"`
+	ErrorMessage   MessageOutputConfig    `toml:"error-message"`
+	Instrumental   InstrumentalConfig     `toml:"instrumental"`
 }
 
 // LEVEL 3
@@ -78,6 +79,10 @@ type FormatOutputConfig struct {
 
 type LyricOutputConfig struct {
 	Icon string `toml:"icon"`
+}
+
+type NotPlayingOutputConfig struct {
+	Text string `toml:"text"`
 }
 
 type MessageOutputConfig struct {

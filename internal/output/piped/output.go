@@ -107,7 +107,7 @@ func Init() {
 					i = 1
 				}
 			} else {
-				writeChan <- ""
+				writeChan <- strings.TrimSpace(global.Config.C.Output.Piped.NotPlaying.Text)
 				global.Player.M.Unlock()
 				global.Config.M.Unlock()
 				instrumentalTimer.Stop()

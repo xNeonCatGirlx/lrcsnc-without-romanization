@@ -37,6 +37,9 @@ format = "(x{value})"
 [output.piped.lyric]
 icon = "♫"
 
+[output.piped.not-playing]
+text = " Nothing is playing"
+
 [output.piped.song-not-found]
 enabled = true
 icon = "⨯"
@@ -44,17 +47,17 @@ text = "Song not found!"
 
 [output.piped.no-synced-lyrics]
 enabled = true
-icon = "🗏"
+icon = "󰦨"
 text = "Lyrics are not synced!"
 
 [output.piped.getting-lyrics]
 enabled = true
-icon = "◌"
+icon = "󱥸"
 text = "Loading..."
 
 [output.piped.error-message]
 enabled = true
-icon = "⚠"
+icon = ""
 text = "An error occured! Check logs for info!"
 
 [output.piped.instrumental]
