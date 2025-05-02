@@ -79,8 +79,8 @@ func Init() {
 			note := global.Config.C.Output.Piped.Instrumental.Symbol
 			j := int(global.Config.C.Output.Piped.Instrumental.MaxSymbols + 1)
 
-			// Only update instrumental stuff if the song is playing
-			if global.Player.P.PlaybackStatus == mprislib.PlaybackPlaying {
+			// Only update instrumental stuff if there is an active song
+			if global.Player.P.PlaybackStatus != mprislib.PlaybackStopped {
 				var stringToPrint string
 
 				switch global.Player.P.Song.LyricsData.LyricsState {
@@ -107,15 +107,17 @@ func Init() {
 				if i >= j {
 					i = 1
 				}
+
+				if global.Player.P.PlaybackStatus == mprislib.PlaybackPlaying {
+					instrumentalTimer.Reset(time.Duration(global.Config.C.Output.Piped.Instrumental.Interval*1000) * time.Millisecond)
+				} else {
+					instrumentalTimer.Stop()
+				}
 			} else {
 				writeChan <- strings.TrimSpace(global.Config.C.Output.Piped.NotPlaying.Text)
-				global.Player.M.Unlock()
-				global.Config.M.Unlock()
 				instrumentalTimer.Stop()
-				continue
 			}
 			global.Player.M.Unlock()
-			instrumentalTimer.Reset(time.Duration(global.Config.C.Output.Piped.Instrumental.Interval*1000) * time.Millisecond)
 			global.Config.M.Unlock()
 		}
 	}()
