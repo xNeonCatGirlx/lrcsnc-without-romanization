@@ -37,6 +37,8 @@ func mprisMessageReceiver() {
 			}
 			global.Player.M.Unlock()
 
+			outputUpdate()
+
 			// And ask for a position sync to be sure
 			AskForPositionSync()
 
