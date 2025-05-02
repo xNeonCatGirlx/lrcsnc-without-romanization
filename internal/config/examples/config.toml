@@ -25,8 +25,13 @@ type = "piped"
 
 [output.piped]
 destination = "stdout"
-json = false
+json = "none"
 insert-newline = true
+
+[output.piped.json-waybar]
+alt = ""
+tooltip = "{artists} - {title} - {album}"
+class = "{playback-status} {lyrics-status}"
 
 [output.piped.text]
 format = "{icon} {lyric} {multiplier}"

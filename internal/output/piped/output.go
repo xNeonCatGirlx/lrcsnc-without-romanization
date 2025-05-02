@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"lrcsnc/internal/output/piped/json"
 	"lrcsnc/internal/pkg/global"
 	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/types"
@@ -126,13 +127,15 @@ func Init() {
 // If JSON output is used, it will be formatted as JSON with full data.
 func Write(s string) {
 	global.Config.M.Lock()
-	if global.Config.C.Output.Piped.JSON {
-		s = FormatToJSON(s)
+	global.Player.M.Lock()
+	if global.Config.C.Output.Piped.JSON != types.JSONOutputNone {
+		s = json.FormatToJSON(s)
 	}
 	if global.Config.C.Output.Piped.InsertNewline {
 		s = s + "\n"
 	}
 	global.Config.M.Unlock()
+	global.Player.M.Unlock()
 
 	if !outputIsStd() {
 		if tempDestination, err := os.OpenFile(tempFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644); err == nil {

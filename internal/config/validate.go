@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"lrcsnc/internal/pkg/structs"
+	"lrcsnc/internal/pkg/types"
 )
 
 type ValidationError struct {
@@ -48,6 +49,18 @@ func Validate(c *structs.Config) (errs ValidationErrors) {
 			Message: fmt.Sprintf("'%s' is not a writeable path. Please make sure the path exists and is writeable", c.Output.Piped.Destination),
 			Fatal:   true,
 		})
+	}
+
+	// Check if JSON output type chosen is valid
+	if c.Output.Type == "piped" && (c.Output.Piped.JSON != types.JSONOutputNone &&
+		c.Output.Piped.JSON != types.JSONOutputGeneric &&
+		c.Output.Piped.JSON != types.JSONOutputWaybar) {
+		errs = append(errs, ValidationError{
+			Path:    "output/piped/json",
+			Message: fmt.Sprintf("'%s' is not a valid value. Allowed values are 'none', 'generic' and 'waybar'. Will use 'none' from now.", c.Output.Piped.JSON),
+			Fatal:   false,
+		})
+		c.Output.Piped.JSON = types.JSONOutputNone
 	}
 
 	// Check if the instrumental interval is set to <0.1s

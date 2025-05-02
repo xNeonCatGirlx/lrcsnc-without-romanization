@@ -58,7 +58,8 @@ func (r *RomanizationConfig) IsEnabled() bool {
 
 type PipedOutputConfig struct {
 	Destination    string                 `toml:"destination"`
-	JSON           bool                   `toml:"json"`
+	JSON           types.JSONOutputType   `toml:"json"`
+	JSONWaybar     JSONWaybarOutputConfig `toml:"json-waybar"`
 	InsertNewline  bool                   `toml:"insert-newline"`
 	Text           FormatOutputConfig     `toml:"text"`
 	Multiplier     FormatOutputConfig     `toml:"multiplier"`
@@ -72,6 +73,12 @@ type PipedOutputConfig struct {
 }
 
 // LEVEL 3
+
+type JSONWaybarOutputConfig struct {
+	Alt     string `toml:"alt"`
+	Tooltip string `toml:"tooltip"`
+	Class   string `toml:"class"`
+}
 
 type FormatOutputConfig struct {
 	Format string `toml:"format"`
