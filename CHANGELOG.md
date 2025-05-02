@@ -4,21 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 202X-XX-XX
+## [[0.1.0](https://github.com/Endg4meZer0/lrcsnc/releases/tag/v0.1.0)] - 2025-05-03
 ### Added
-- Terminal User Interface using [bubbletea](https://github.com/charmbracelet/bubbletea)
-- Some simple unit tests like cache and romanization
+- Some simple unit tests like cache and romanization.
+- Makefile for easier build and more control over linking stuff.
+- JSON piped output.
 ### Changed
-- A-a-a-and another **ginormous** refactor, learning and making use of moduling and SOLID principles.
-- Changed configuration correspondingly (you will learn more on wiki once the version releases); planning to move configuration format from JSON to KDL.
+- **Everything is rewrote from scratch**:
+- MPRIS support now works on signals instead of polling.
+- Configuration format is now TOML.
+- Japanese romanization now uses [kakasi](https://github.com/loretoparisi/kakasi) and is able to romanize kanji. Kakasi is installed as a separate dependency for it to work.
+- Romanization is now able to handle multiple languages on one line.
+- Flags usage is now handled by [go-flags](https://github.com/jessevdk/go-flags) instead of standard library.
 ### Removed
-- Playerctl support is now removed in favor of direct MPRIS/D-Bus handling.
-- Terminal output in one line is now removed since a proper TUI is now availabe.
+- Playerctl dependency is now completely abandoned and cut from the app in favor of direct MPRIS handling using [own library](https://github.com/Endg4meZer0/go-mpris).
+- Terminal output in one line is removed.
+
+## The changelog below describes [playerctl-lyrics](https://github.com/Endg4meZer0/playerctl-lyrics), the now archived project which lrcsnc is based on.
 
 ## [[0.2.1](https://github.com/Endg4meZer0/playerctl-lyrics/releases/tag/v0.2.1)] - 2024-08-29
 ### Added
 - A command-line option `-o` to redirect the output to a set file.
-- ~~A command-line option to display lyrics in one line~~ **is deprecated**
+- ~~A command-line option to display lyrics in one line~~ **is removed now**
 - A configuration option to offset the lyrics by set seconds by @Endg4meZer0 in [#9](https://github.com/Endg4meZer0/playerctl-lyrics/pull/9)
 ### Changed
 - More refactoring: `cmus` and other players that report position in integer seconds are now fully supported.
