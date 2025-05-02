@@ -17,7 +17,7 @@ git clone https://github.com/Endg4meZer0/lrcsnc.git
 cd lrcsnc
 make # or `sudo make all` for automatic install
 ```
-Make sure to have go v1.24.2 or above.
+Make sure to have go v1.23 or above.
 More tricks are available at the [wiki](https://github.com/Endg4meZer0/lrcsnc/wiki/Building).
 
 ## Usage
