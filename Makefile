@@ -7,8 +7,8 @@ PREFIX ?= "/usr/local"
 PACKAGEDIR ?= "${BIN}_${VERSION}"
 PACKAGENAME := "${PACKAGEDIR}.tar.gz"
 
-LDFLAGS_VERSION ?= -X lrcsnc/internal/setup.version=${VERSION}
-LDFLAGS ?= \
+LDFLAGS_VERSION := -X lrcsnc/internal/setup.version=${VERSION}
+LDFLAGS := \
 	${LDFLAGS_VERSION}
 
 default: build
