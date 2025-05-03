@@ -19,14 +19,13 @@ cd lrcsnc
 make # or `sudo make all` for automatic install
 ```
 Make sure to have go v1.23 or above.
-More tricks are available at the [wiki](https://github.com/Endg4meZer0/lrcsnc/wiki/Building).
 Japanese romanization also requires `kakasi` installed as a separate dependency.
 
 ## Usage
 ```
 lrcsnc [OPTION]
 ```
-Get more info on on available options with `lrcsnc -h` or on [wiki](https://github.com/Endg4meZer0/lrcsnc/wiki/Available-options).
+Get more info on on available options with `lrcsnc -h`.
 
 ## TODO
 - [ ] Check [compatibility](https://github.com/Endg4meZer0/lrcsnc/wiki/Compatibility-with-players) with different players
