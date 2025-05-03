@@ -24,9 +24,13 @@ func FormatToJSON(text string) string {
 			Duration: fmt.Sprintf("%02d:%02d", int(global.Player.P.Song.Duration)/60, int(global.Player.P.Song.Duration)%60),
 		}
 	case types.JSONOutputWaybar:
+		var artist string
+		if len(global.Player.P.Song.Artists) > 0 {
+			artist = global.Player.P.Song.Artists[0]
+		}
 		altTooltipReplacer := strings.NewReplacer(
 			"{text}", text,
-			"{artist}", global.Player.P.Song.Artists[0],
+			"{artist}", artist,
 			"{artists}", strings.Join(global.Player.P.Song.Artists, ", "),
 			"{title}", global.Player.P.Song.Title,
 			"{album}", global.Player.P.Song.Album,
