@@ -106,8 +106,8 @@ func ChangePlayer() error {
 			}
 			prate, err := GetRate()
 			if err != nil {
-				log.Error("mpris/ChangePlayer", "Got an error when using player.GetRate: "+err.Error())
-				pass = false
+				log.Error("mpris/ChangePlayer", "Got an non-critical error when using player.GetRate: "+err.Error())
+				prate = 1
 			}
 			md, err := GetMetadata()
 			if err != nil {
