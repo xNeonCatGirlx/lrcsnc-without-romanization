@@ -26,5 +26,6 @@ lrcsnc [OPTION]
 Get more info on on available options with `lrcsnc -h`.
 
 ## TODO
-- [Done!] Add competability to warbar
+- [Done!] Add competability to waybar
+
 Files for waybar will be uploaded soon
