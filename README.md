@@ -9,7 +9,7 @@ https://github.com/user-attachments/assets/1bc93e59-385f-41cb-a23e-49298e5887b0
 
 - Syncing to any player that supports MPRIS
 - A decent level of customization and configuration using TOML
-- (Almost) full integration to Waybar
+- Full integration to Waybar
 
 ## Build
 ```
