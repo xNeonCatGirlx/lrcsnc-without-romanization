@@ -3,7 +3,6 @@ package lyrics
 import (
 	"lrcsnc/internal/pkg/log"
 	"lrcsnc/internal/pkg/structs"
-	"lrcsnc/internal/romanization"
 )
 
 // Configure sets up the lyrics data by applying necessary configurations.
@@ -15,10 +14,5 @@ import (
 // No locking a mutex in THIS function.
 func Configure(lyricsData *structs.LyricsData) {
 	log.Debug("lyrics/configure", "Starting configuring the received lyrics")
-
-	// Romanization
-	log.Debug("lyrics/configure", "Applying romanization if enabled and necessary")
-	romanization.Romanize(lyricsData.Lyrics)
-
 	log.Debug("lyrics/configure", "Done")
 }
