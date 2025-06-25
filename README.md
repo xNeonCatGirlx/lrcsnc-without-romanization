@@ -1,4 +1,4 @@
-# <p align="center">lrcsnc</p>
+# <p align="center">lrcsnc But Removed Romanization</p>
 Gets the currently playing song's synced lyrics and displays them in sync with song's actual position!
 
 lrcsnc is primarily designed for bars like [Waybar](https://github.com/Alexays/Waybar).
@@ -8,7 +8,6 @@ https://github.com/user-attachments/assets/1bc93e59-385f-41cb-a23e-49298e5887b0
 ## Features
 
 - Syncing to any player that supports MPRIS
-- Romanization for Japanese, Chinese and Korean languages
 - A decent level of customization and configuration using TOML
 - (Almost) full integration to Waybar
 
@@ -19,7 +18,6 @@ cd lrcsnc
 make # or `sudo make all` for automatic install
 ```
 Make sure to have go v1.23 or above.
-Japanese romanization also requires `kakasi` installed as a separate dependency.
 
 ## Usage
 ```
