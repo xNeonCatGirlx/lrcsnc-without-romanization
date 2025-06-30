@@ -43,7 +43,7 @@ format = "(x{value})"
 icon = ""
 
 [output.piped.not-playing]
-text = "Nothing is playing"
+text = ""
 
 [output.piped.song-not-found]
 enabled = true
