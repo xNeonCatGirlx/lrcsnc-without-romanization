@@ -41,15 +41,18 @@ Create a file, can be names anything, for example
 ```sh
 /home/neoncatgirl/.config/waybar/scripts/lrcsnc_waybar.sh
 ```
-Use lrcsnc -o /replace/with/path/to/lrcsnc_waybar.sh
-
-So lrcsnc outputs lyrics to the .sh file
-
 Make it executable with 
 ```sh
 chmod +x /replace/with/path/to/lrcsnc_waybar.sh
 ```
-Finish the rest of the waybar module with 
+Edit the file with 
+```sh
+    "custom/lyrics": {
+    "exec": "/home/neoncatgirl/.config/waybar/scripts/lrcsnc_to_file.sh",
+    "interval": 0,
+    "return-type": "stdout"
+```
+Finish the rest of the waybar module with
 ```sh
     "custom/lyrics": {
     "exec": "/home/neoncatgirl/.config/waybar/scripts/lrcsnc_to_file.sh",
