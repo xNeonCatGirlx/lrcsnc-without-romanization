@@ -25,9 +25,34 @@ Make sure to have go v1.23 or above.
 ```
 lrcsnc [OPTION]
 ```
-Get more info on on available options with `lrcsnc -h`.
+Get more info on on available options with `lrcsnc -h`. waybar folder
 
-## TODO
-- [Done!] Add competability to waybar
+## Setting up for waybar
+This is a kinda ok-ish solution, maybe not the best
 
-Files for waybar will be uploaded soon
+You will need to add a custom module in waybar, for example:
+```sh
+"custom/lyrics"
+```
+
+(Optional) Create a scripts folder in your waybar config folder
+
+Create a file, can be names anything, for example
+```sh
+/home/neoncatgirl/.config/waybar/scripts/lrcsnc_waybar.sh
+```
+Use lrcsnc -o /replace/with/path/to/lrcsnc_waybar.sh
+
+So lrcsnc outputs lyrics to the .sh file
+
+Make it executable with 
+```sh
+chmod +x /replace/with/path/to/lrcsnc_waybar.sh
+```
+Finish the rest of the waybar module with 
+```sh
+    "custom/lyrics": {
+    "exec": "/home/neoncatgirl/.config/waybar/scripts/lrcsnc_to_file.sh",
+    "interval": 0,
+    "return-type": "stdout"
+```
